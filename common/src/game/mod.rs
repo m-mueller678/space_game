@@ -1,4 +1,4 @@
-mod ship;
+pub mod ship;
 mod lane;
 
 use self::ship::*;
@@ -25,7 +25,7 @@ impl Game {
         };
         g
     }
-    fn tick(&mut self) {
+    pub fn tick(&mut self) {
         let (l1, l2) = self.lanes.split_at_mut(1);
         for l in l1[0].iter_mut() {
             l.tick(&mut l2[0])
