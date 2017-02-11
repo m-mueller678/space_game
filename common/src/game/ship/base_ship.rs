@@ -3,13 +3,13 @@ use super::*;
 use std::rc::{Weak, Rc};
 use std::cell::RefCell;
 
-struct BaseShip {
+pub struct BaseShip {
     target: Option<Weak<RefCell<Ship>>>,
     pos: Position,
 }
 
 impl BaseShip {
-    fn new() -> Self {
+    pub fn new() -> Self {
         BaseShip {
             target: None,
             pos: 0,

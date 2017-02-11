@@ -1,7 +1,7 @@
 pub type Position = i32;
 
 use std::cell::RefCell;
-use std::rc::{Rc, Weak};
+use std::rc::Rc;
 use super::ship::*;
 use std::ops::*;
 
@@ -12,6 +12,16 @@ pub struct Lane {
 }
 
 impl Lane {
+    pub fn new(len: Position, id: usize) -> Self {
+        Lane {
+            ships: Vec::new(),
+            len: len,
+            pos: id,
+        }
+    }
+    pub fn push<S: Ship + 'static>(&mut self, s: S) {
+        self.ships.push(Rc::new(RefCell::new(s)));
+    }
     pub fn flip_pos(&self, pos: Position) -> Position {
         self.len - pos
     }
