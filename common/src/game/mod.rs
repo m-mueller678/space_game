@@ -4,9 +4,6 @@ mod lane;
 use self::ship::*;
 use self::lane::*;
 
-use self::ship::base_ship::BaseShip;
-
-
 pub struct Game {
     lanes: [Vec<Lane>; 2],
 }
