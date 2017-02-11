@@ -31,4 +31,7 @@ impl Game {
             l.tick(&mut l1[0])
         }
     }
+    pub fn lane(&self, direction: usize) -> &[Lane] {
+        &self.lanes[direction]
+    }
 }

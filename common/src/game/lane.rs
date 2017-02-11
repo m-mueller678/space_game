@@ -30,6 +30,9 @@ impl Lane {
             s.borrow_mut().tick(self.pos, other);
         }
     }
+    pub fn distance(&self) -> Position {
+        self.len
+    }
 }
 
 impl Deref for Lane {
