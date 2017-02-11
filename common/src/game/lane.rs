@@ -1,25 +1,28 @@
 pub type Position = i32;
 
-use std::rc::{Rc,Weak};
+use std::cell::RefCell;
+use std::rc::{Rc, Weak};
 use super::ship::*;
 use std::ops::*;
 
 pub struct Lane {
-    ships: Vec<Rc<Ship>>,
+    ships: Vec<Rc<RefCell<Ship>>>,
     len: Position,
+    pos: usize,
 }
 
 impl Lane {
-    fn flip_pos(&self, pos: Position) -> Position {
+    pub fn flip_pos(&self, pos: Position) -> Position {
         self.len - pos
+    }
+    pub fn tick(&mut self, other: &mut [Lane]) {
+        for s in self.ships.iter_mut() {
+            s.borrow_mut().tick(self.pos, other);
+        }
     }
 }
 
 impl Deref for Lane {
-    type Target = [Rc<Ship>];
+    type Target = [Rc<RefCell<Ship>>];
     fn deref(&self) -> &Self::Target { &self.ships }
-}
-
-impl DerefMut for Lane {
-    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.ships }
 }
