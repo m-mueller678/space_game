@@ -3,4 +3,10 @@ name = "common"
 version = "0.1.0"
 authors = ["m-mueller678"]
 
+[features]
+default=[]
+graphics=["sfml","rand"]
+
 [dependencies]
+sfml={ version="0.11.2", optional=true}
+rand={ version="0.3.15", optional=true}

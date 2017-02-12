@@ -4,28 +4,34 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use super::ship::*;
 use std::ops::*;
+use graphics;
 
-pub struct Lane {
-    ships: Vec<Rc<RefCell<Ship>>>,
+pub const LANE_HEIGHT: i32 = 1000;
+
+pub struct Lane<T> {
+    ships: Vec<Rc<RefCell<Ship<T>>>>,
     len: Position,
     pos: usize,
+    right_to_left: bool,
 }
 
-impl Lane {
-    pub fn new(len: Position, id: usize) -> Self {
+impl<T: graphics::RenderTarget> Lane<T> {
+    pub fn new(len: Position, id: usize, right_to_left: bool) -> Self {
         Lane {
             ships: Vec::new(),
             len: len,
             pos: id,
+            right_to_left: right_to_left,
         }
     }
-    pub fn push<S: Ship + 'static>(&mut self, s: S) {
+    pub fn push<S: Ship<T> + 'static>(&mut self, mut s: S) {
+        s.lane_changed(self);
         self.ships.push(Rc::new(RefCell::new(s)));
     }
     pub fn flip_pos(&self, pos: Position) -> Position {
         self.len - pos
     }
-    pub fn tick(&mut self, other: &mut [Lane]) {
+    pub fn tick(&mut self, other: &mut [Lane<T>]) {
         for s in self.ships.iter_mut() {
             s.borrow_mut().tick(self.pos, other);
         }
@@ -33,9 +39,26 @@ impl Lane {
     pub fn distance(&self) -> Position {
         self.len
     }
+    pub fn y_range(&self) -> (i32, i32) {
+        let base = self.pos as i32 * LANE_HEIGHT;
+        (base + LANE_HEIGHT / 5, base + LANE_HEIGHT * 4 / 5)
+    }
+    pub fn draw_pos(&self, p: Position) -> Position {
+        if self.right_to_left {
+            self.flip_pos(p)
+        } else {
+            p
+        }
+    }
+    #[cfg(feature = "graphics")]
+    pub fn draw(&self, target: &mut T) {
+        for s in self.ships.iter() {
+            s.borrow().draw(target, self);
+        }
+    }
 }
 
-impl Deref for Lane {
-    type Target = [Rc<RefCell<Ship>>];
+impl<T> Deref for Lane<T> {
+    type Target = [Rc<RefCell<Ship<T>>>];
     fn deref(&self) -> &Self::Target { &self.ships }
 }

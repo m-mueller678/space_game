@@ -4,5 +4,5 @@ version = "0.1.0"
 authors = ["m-mueller678"]
 
 [dependencies]
-common={path="../common"}
+common={path="../common",features=["graphics"]}
 sfml = "0.11.2"
