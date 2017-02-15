@@ -1,16 +1,16 @@
 pub mod ship;
 mod lane;
 
-use self::ship::*;
+use self::ship::base_ship::BaseShip;
 use self::lane::*;
 use graphics;
 
-pub struct Game<T> {
-    lanes: [Vec<Lane<T>>; 2],
+pub struct Game {
+    lanes: [Vec<Lane>; 2],
 }
 
-impl<T: graphics::RenderTarget> Game<T> {
-    pub fn push_ship<S: Ship<T> + 'static>(&mut self, s: S, direction: usize, lane: usize) {
+impl Game {
+    pub fn push_ship(&mut self, s: BaseShip, direction: usize, lane: usize) {
         self.lanes[direction][lane].push(s);
     }
     pub fn new(size: usize, length: i32) -> Self {
@@ -33,7 +33,7 @@ impl<T: graphics::RenderTarget> Game<T> {
             l.tick(&mut l1[0])
         }
     }
-    pub fn lane(&self, direction: usize) -> &[Lane<T>] {
+    pub fn lane(&self, direction: usize) -> &[Lane] {
         &self.lanes[direction]
     }
     pub fn size_x(&self) -> i32 {
@@ -43,7 +43,7 @@ impl<T: graphics::RenderTarget> Game<T> {
         self.lanes[0].len() as i32 * LANE_HEIGHT
     }
     #[cfg(feature = "graphics")]
-    pub fn draw(&self, target: &mut T) {
+    pub fn draw<T: graphics::RenderTarget>(&self, target: &mut T) {
         for lvec in self.lanes.iter() {
             for l in lvec.iter() {
                 l.draw(target);

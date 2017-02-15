@@ -9,8 +9,8 @@ fn mul_frac(m1: u32, m2: u32) -> u32 {
     ((m1 as u64 * m2 as u64) / MAX as u64) as u32
 }
 
-pub struct BaseShip<T> {
-    target: Option<Weak<RefCell<Ship<T>>>>,
+pub struct BaseShip {
+    target: Option<Weak<RefCell<Ship>>>,
     pos: i32,
     pos_y: i32,
     laser_dmg_mult: u32,
@@ -23,7 +23,7 @@ pub struct BaseShip<T> {
     draw_move: graphics::IfGraphics<bool>
 }
 
-impl<T: graphics::RenderTarget> BaseShip<T> {
+impl BaseShip {
     pub fn new() -> Self {
         BaseShip {
             target: None,
@@ -39,7 +39,7 @@ impl<T: graphics::RenderTarget> BaseShip<T> {
             draw_move: Default::default(),
         }
     }
-    fn get_target(&mut self, lane: &Lane<T>) {
+    fn get_target(&mut self, lane: &Lane) {
         use std::i32;
         let mut new_target = None;
         let mut min_dist = i32::MAX;
@@ -66,33 +66,30 @@ impl<T: graphics::RenderTarget> BaseShip<T> {
             self.draw_move = m;
         }
     }
-}
-
-impl<T: graphics::RenderTarget> Ship<T> for BaseShip<T> {
-    fn pos_x(&self) -> i32 {
+    pub fn pos_x(&self) -> i32 {
         self.pos
     }
-    fn set_pos_x(&mut self, pos: i32) {
+    pub fn set_pos_x(&mut self, pos: i32) {
         self.pos = pos;
     }
-    fn pos_y(&self) -> i32 {
+    pub fn pos_y(&self) -> i32 {
         self.pos_y
     }
-    fn calc_damage(&self, dmg: &Damage) -> u32 {
+    pub fn calc_damage(&self, dmg: &Damage) -> u32 {
         match *dmg {
             Damage::Laser(power) => mul_frac(power, self.laser_dmg_mult)
         }
     }
-    fn apply_damage(&mut self, dmg: &Damage) {
+    pub fn apply_damage(&mut self, dmg: &Damage) {
         self.health = self.health.saturating_sub(self.calc_damage(dmg));
     }
-    fn health(&self) -> u32 {
+    pub fn health(&self) -> u32 {
         self.health
     }
-    fn max_health(&self) -> u32 {
+    pub fn max_health(&self) -> u32 {
         self.max_health
     }
-    fn tick(&mut self, lane: usize, others: &[Lane<T>]) {
+    pub fn tick(&mut self, lane: usize, others: &[Lane]) {
         self.get_target(&others[lane]);
         let cell_rc = self.target.as_ref().and_then(|x| Weak::upgrade(&x));
         if let Some(c) = cell_rc {
@@ -109,13 +106,13 @@ impl<T: graphics::RenderTarget> Ship<T> for BaseShip<T> {
             self.do_move(move_control >= 0);
         } else {
             for w in self.weapons.iter_mut() {
-                w.tick::<T>(None);
+                w.tick(None);
             }
             self.do_move(true);
         };
     }
 
-    fn lane_changed(&mut self, l: &Lane<T>) {
+    pub fn lane_changed(&mut self, l: &Lane) {
         #[cfg(feature = "graphics")]{
             use rand::{thread_rng, Rng};
             let range = l.y_range();
@@ -125,7 +122,7 @@ impl<T: graphics::RenderTarget> Ship<T> for BaseShip<T> {
         self.accel = if l.right_to_left() { self.accel.abs() } else { -self.accel.abs() };
     }
     #[cfg(feature = "graphics")]
-    fn draw(&self, rt: &mut T, _: &Lane<T>) {
+    pub fn draw<T: graphics::RenderTarget>(&self, rt: &mut T, _: &Lane) {
         use sfml::graphics::*;
         let mut circle = CircleShape::new_init(100., 20).unwrap();
         circle.set_origin2f(50., 50.);
@@ -135,7 +132,7 @@ impl<T: graphics::RenderTarget> Ship<T> for BaseShip<T> {
         if let Some(c) = cell_rc {
             let cell_ref = c.borrow();
             let draw_args = DrawArgs {
-                target: Some(cell_ref),
+                target: Some(&*cell_ref),
                 parent: self,
             };
             for w in self.weapons.iter() {

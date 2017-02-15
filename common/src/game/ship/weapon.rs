@@ -1,14 +1,13 @@
 use super::*;
-use std::cell::Ref;
 
 #[cfg(feature = "graphics")]
-pub struct DrawArgs<'a, 'b, T: 'b + 'a> {
-    pub target: Option<Ref<'a, Ship<T>>>,
-    pub parent: &'b Ship<T>,
+pub struct DrawArgs<'a, 'b> {
+    pub target: Option<&'a Ship>,
+    pub parent: &'b BaseShip,
 }
 
-pub struct TargetArgs<'a, T: 'a> {
-    pub ship: &'a mut Ship<T>,
+pub struct TargetArgs<'a> {
+    pub ship: &'a mut Ship,
     pub distance: i32,
 }
 
@@ -51,7 +50,7 @@ impl Weapon {
         }
     }
 
-    pub fn tick<'a, T: graphics::RenderTarget>(&mut self, target: Option<&mut TargetArgs<'a, T>>) {
+    pub fn tick(&mut self, target: Option<&mut TargetArgs>) {
         match self.class {
             WeaponClass::Laser { power, .. } => if let Some(target) = target {
                 if target.distance < self.range {
@@ -65,14 +64,14 @@ impl Weapon {
         self.range
     }
 
-    pub fn damage_100<T: graphics::RenderTarget>(&self, target: &Ship<T>) -> u32 {
+    pub fn damage_100(&self, target: &Ship) -> u32 {
         match self.class {
             WeaponClass::Laser { power, .. } => target.calc_damage(&Damage::Laser(power)) * 100
         }
     }
 
     #[cfg(feature = "graphics")]
-    pub fn draw<T: graphics::RenderTarget>(&self, rt: &mut T, draw: &DrawArgs<T>) {
+    pub fn draw<T: graphics::RenderTarget>(&self, rt: &mut T, draw: &DrawArgs) {
         use sfml::graphics::*;
         use sfml::system::Vector2f;
         match self.class {
