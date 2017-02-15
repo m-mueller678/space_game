@@ -7,15 +7,15 @@ use sfml::window::*;
 use sfml::system::*;
 
 fn main() {
-    let mut g = game::Game::new(4, 100_000);
+    let mut g = game::Game::new(4, 10_000);
     g.push_ship(game::ship::base_ship::BaseShip::new(), 0, 0);
+    g.push_ship(game::ship::base_ship::BaseShip::new(), 1, 0);
     let mut window = RenderWindow::new(VideoMode::new_init(600, 600, 32),
                                        "space game",
                                        window_style::CLOSE | window_style::RESIZE,
                                        &ContextSettings::default()).unwrap();
     {
-        let y = g.size_y() as f32;
-        let view = View::new_from_rect(&FloatRect::new(0., 0., y, y)).unwrap();
+        let view = View::new_from_rect(&FloatRect::new(0., 0., g.size_x() as f32, g.size_y() as f32)).unwrap();
         window.set_view(&view);
     }
     window.set_framerate_limit(30);

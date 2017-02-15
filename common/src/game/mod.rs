@@ -13,7 +13,7 @@ impl<T: graphics::RenderTarget> Game<T> {
     pub fn push_ship<S: Ship<T> + 'static>(&mut self, s: S, direction: usize, lane: usize) {
         self.lanes[direction][lane].push(s);
     }
-    pub fn new(size: usize, length: Position) -> Self {
+    pub fn new(size: usize, length: i32) -> Self {
         assert!(size > 0);
         let mut g = Game {
             lanes: [Vec::with_capacity(size), Vec::with_capacity(size)],
@@ -36,7 +36,7 @@ impl<T: graphics::RenderTarget> Game<T> {
     pub fn lane(&self, direction: usize) -> &[Lane<T>] {
         &self.lanes[direction]
     }
-    pub fn size_x(&self) -> Position {
+    pub fn size_x(&self) -> i32 {
         self.lanes[0][0].distance()
     }
     pub fn size_y(&self) -> i32 {

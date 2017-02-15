@@ -1,7 +1,6 @@
 pub mod base_ship;
 pub mod weapon;
 
-use super::Position;
 use super::Lane;
 use graphics;
 
@@ -10,8 +9,9 @@ pub enum Damage {
 }
 
 pub trait Ship<T: graphics::RenderTarget> {
-    fn pos_x(&self) -> Position;
+    fn pos_x(&self) -> i32;
     fn pos_y(&self) -> i32;
+    fn set_pos_x(&mut self, p: i32);
     fn tick(&mut self, lane: usize, others: &[Lane<T>]);
     fn lane_changed(&mut self, _: &Lane<T>) {}
     fn health(&self) -> u32;
