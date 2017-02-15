@@ -5,8 +5,8 @@ pub mod mothership;
 use super::Lane;
 use graphics;
 
-use self::base_ship::BaseShip;
-use self::mothership::Mothership;
+pub use self::base_ship::BaseShip;
+pub use self::mothership::Mothership;
 
 pub enum Damage {
     Laser(u32),

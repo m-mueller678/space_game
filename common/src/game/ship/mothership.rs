@@ -6,6 +6,16 @@ pub struct Mothership {
     health: u32
 }
 
+impl Mothership {
+    pub fn new(x: i32, y: i32) -> Self {
+        Mothership {
+            x: x,
+            y: y,
+            health: 10_000,
+        }
+    }
+}
+
 impl ShipTrait for Mothership {
     fn pos_x(&self) -> i32 {
         self.x

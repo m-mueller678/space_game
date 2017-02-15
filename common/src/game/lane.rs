@@ -1,7 +1,6 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 use super::ship::*;
-use super::ship::base_ship::BaseShip;
 use std::ops::*;
 use graphics;
 
@@ -9,6 +8,7 @@ pub const LANE_HEIGHT: i32 = 1000;
 
 pub struct Lane {
     ships: Vec<Rc<RefCell<Ship>>>,
+    mothership: Rc<RefCell<Ship>>,
     len: i32,
     pos: usize,
     right_to_left: bool,
@@ -16,11 +16,13 @@ pub struct Lane {
 
 impl Lane {
     pub fn new(len: i32, id: usize, right_to_left: bool) -> Self {
+        let mothership = Mothership::new(if right_to_left { 0 } else { len }, id as i32 * LANE_HEIGHT + LANE_HEIGHT / 2);
         Lane {
             ships: Vec::new(),
             len: len,
             pos: id,
             right_to_left: right_to_left,
+            mothership: Rc::new(RefCell::new(Ship::Mothership(mothership))),
         }
     }
     pub fn push(&mut self, mut s: BaseShip) {
@@ -52,6 +54,9 @@ impl Lane {
         for s in self.ships.iter() {
             s.borrow().draw(target, self);
         }
+    }
+    pub fn mothership(&self) -> &Rc<RefCell<Ship>> {
+        &self.mothership
     }
 }
 
