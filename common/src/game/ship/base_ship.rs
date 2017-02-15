@@ -10,7 +10,7 @@ fn mul_frac(m1: u32, m2: u32) -> u32 {
 }
 
 pub struct BaseShip {
-    target: Option<Weak<RefCell<Ship>>>,
+    target: Weak<RefCell<Ship>>,
     pos: i32,
     pos_y: i32,
     laser_dmg_mult: u32,
@@ -26,7 +26,7 @@ pub struct BaseShip {
 impl BaseShip {
     pub fn new() -> Self {
         BaseShip {
-            target: None,
+            target: Weak::new(),
             pos: 0,
             health: 10000,
             max_health: 10000,
@@ -39,18 +39,18 @@ impl BaseShip {
             draw_move: Default::default(),
         }
     }
-    fn get_target(&mut self, lane: &Lane) {
-        use std::i32;
-        let mut new_target = None;
-        let mut min_dist = i32::MAX;
+    fn get_target(&mut self, lane: &Lane) -> Rc<RefCell<Ship>> {
+        let mut new_target = lane.mothership();
+        let mut min_dist = (lane.mothership().borrow().pos_x() - self.pos).abs();
         for ship in lane.iter() {
             let dist = ship.borrow().pos_x() - self.pos;
             if dist.abs() < min_dist && dist.signum() == self.accel.signum() {
                 min_dist = dist.abs();
-                new_target = Some(ship);
+                new_target = ship;
             }
         }
-        self.target = new_target.map(|x| Rc::downgrade(&x));
+        self.target = Rc::downgrade(new_target);
+        new_target.clone()
     }
     fn do_move(&mut self, m: bool) {
         if m {
@@ -90,26 +90,18 @@ impl BaseShip {
         self.max_health
     }
     pub fn tick(&mut self, lane: usize, others: &[Lane]) {
-        self.get_target(&others[lane]);
-        let cell_rc = self.target.as_ref().and_then(|x| Weak::upgrade(&x));
-        if let Some(c) = cell_rc {
-            let mut cell_ref = c.borrow_mut();
-            let dist = (cell_ref.pos_x() - self.pos).abs();
-            let mut target_args = TargetArgs {
-                ship: &mut *cell_ref,
-                distance: dist,
-            };
-            for w in self.weapons.iter_mut() {
-                w.tick(Some(&mut target_args));
-            }
-            let move_control = self.weapons.iter().map(|x| x.control_move(dist)).sum::<i32>();
-            self.do_move(move_control >= 0);
-        } else {
-            for w in self.weapons.iter_mut() {
-                w.tick(None);
-            }
-            self.do_move(true);
+        let target_rc = self.get_target(&others[lane]);
+        let mut cell_ref = target_rc.borrow_mut();
+        let dist = (cell_ref.pos_x() - self.pos).abs();
+        let mut target_args = TargetArgs {
+            ship: &mut *cell_ref,
+            distance: dist,
         };
+        for w in self.weapons.iter_mut() {
+            w.tick(&mut target_args);
+        }
+        let move_control = self.weapons.iter().map(|x| x.control_move(dist)).sum::<i32>();
+        self.do_move(move_control >= 0);
     }
 
     pub fn lane_changed(&mut self, l: &Lane) {
@@ -122,30 +114,20 @@ impl BaseShip {
         self.accel = if l.right_to_left() { self.accel.abs() } else { -self.accel.abs() };
     }
     #[cfg(feature = "graphics")]
-    pub fn draw<T: graphics::RenderTarget>(&self, rt: &mut T, _: &Lane) {
+    pub fn draw<T: graphics::RenderTarget>(&self, rt: &mut T, lane: &Lane) {
         use sfml::graphics::*;
         let mut circle = CircleShape::new_init(100., 20).unwrap();
         circle.set_origin2f(50., 50.);
         circle.set_position2f(self.pos as f32, self.pos_y as f32);
         circle.draw(rt, &mut RenderStates::default());
-        let cell_rc = self.target.as_ref().and_then(|x| Weak::upgrade(&x));
-        if let Some(c) = cell_rc {
-            let cell_ref = c.borrow();
-            let draw_args = DrawArgs {
-                target: Some(&*cell_ref),
-                parent: self,
-            };
-            for w in self.weapons.iter() {
-                w.draw(rt, &draw_args);
-            }
-        } else {
-            let draw_args = DrawArgs {
-                target: None,
-                parent: self,
-            };
-            for w in self.weapons.iter() {
-                w.draw(rt, &draw_args);
-            }
+        let cell_rc = Weak::upgrade(&self.target).unwrap_or(lane.mothership().clone());
+        let cell_ref = cell_rc.borrow();
+        let draw_args = DrawArgs {
+            target: &*cell_ref,
+            parent: self,
         };
+        for w in self.weapons.iter() {
+            w.draw(rt, &draw_args);
+        }
     }
 }
