@@ -107,6 +107,9 @@ impl BaseShip {
 
         let mut rs = RenderStates::default();
         rs.transform.translate(self.pos_x() as f32, self.pos_y() as f32);
+        if self.accel.signum() < 0 {
+            rs.transform.scale(-1., 1.);
+        }
         self.texture.draw(rt, &mut rs);
         let cell_rc = Weak::upgrade(&self.target).unwrap_or(lane.mothership().clone());
         let cell_ref = cell_rc.borrow();
