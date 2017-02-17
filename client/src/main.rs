@@ -7,9 +7,25 @@ use sfml::window::*;
 use sfml::system::*;
 
 fn main() {
+    init_thread_texture_path("./textures/");
+    let builder = r###"{
+        "laser_dmg_mult":2000000000,
+        "accel":1,
+        "max_speed":20,
+        "max_health":1000,
+        "weapons":[
+            {"range":1000,"offset":[0,0],"priority":20,"class":{"Laser":{"color":[0,0,255],"power":20}}}
+        ],
+        "texture":{
+            "parts":[
+                {"id":"white","pos":[-40,-10,40,10]}
+            ]
+        }
+    }"###;
+    let builder: game::ship::base_ship::builder::BaseShipBuilder = serde_json::from_str(builder).unwrap();
     let mut g = game::Game::new(4, 10_000);
-    g.push_ship(game::ship::base_ship::BaseShip::new(), 0, 0);
-    g.push_ship(game::ship::base_ship::BaseShip::new(), 1, 0);
+    g.push_ship(builder.build(), 0, 0);
+    g.push_ship(builder.build(), 1, 0);
     let mut window = RenderWindow::new(VideoMode::new_init(600, 600, 32),
                                        "space game",
                                        window_style::CLOSE | window_style::RESIZE,

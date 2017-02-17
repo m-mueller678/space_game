@@ -3,6 +3,7 @@ mod lane;
 
 use self::ship::base_ship::BaseShip;
 use self::lane::*;
+#[cfg(feature = "graphics")]
 use graphics;
 
 pub struct Game {

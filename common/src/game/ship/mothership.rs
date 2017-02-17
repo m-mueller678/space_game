@@ -44,6 +44,6 @@ impl ShipTrait for Mothership {
     fn apply_damage(&mut self, dmg: &Damage) {
         self.health = self.health.saturating_sub(self.calc_damage(dmg));
     }
-
+    #[cfg(feature = "graphics")]
     fn draw<T: graphics::RenderTarget>(&self, _: &mut T, _: &Lane) {}
 }

@@ -1,3 +1,5 @@
+pub mod builder;
+
 use super::*;
 use super::weapon::*;
 use std::rc::{Weak, Rc};
@@ -20,25 +22,11 @@ pub struct BaseShip {
     health: u32,
     max_health: u32,
     weapons: Vec<Weapon>,
-    draw_move: graphics::IfGraphics<bool>
+    draw_move: graphics::IfGraphics<bool>,
+    texture: graphics::IfGraphics<Rc<graphics::CompositeTexture>>,
 }
 
 impl BaseShip {
-    pub fn new() -> Self {
-        BaseShip {
-            target: Weak::new(),
-            pos: 0,
-            health: 10000,
-            max_health: 10000,
-            laser_dmg_mult: 4_000_000_000,
-            speed: 0,
-            accel: 1,
-            max_speed: 20,
-            pos_y: 0,
-            weapons: vec![Weapon::new_laser(100, 1000, 100)],
-            draw_move: Default::default(),
-        }
-    }
     fn get_target(&mut self, lane: &Lane) -> Rc<RefCell<Ship>> {
         let mut new_target = lane.mothership();
         let mut min_dist = (lane.mothership().borrow().pos_x() - self.pos).abs();
@@ -116,10 +104,10 @@ impl BaseShip {
     #[cfg(feature = "graphics")]
     pub fn draw<T: graphics::RenderTarget>(&self, rt: &mut T, lane: &Lane) {
         use sfml::graphics::*;
-        let mut circle = CircleShape::new_init(100., 20).unwrap();
-        circle.set_origin2f(50., 50.);
-        circle.set_position2f(self.pos as f32, self.pos_y as f32);
-        circle.draw(rt, &mut RenderStates::default());
+
+        let mut rs = RenderStates::default();
+        rs.transform.translate(self.pos_x() as f32, self.pos_y() as f32);
+        self.texture.draw(rt, &mut rs);
         let cell_rc = Weak::upgrade(&self.target).unwrap_or(lane.mothership().clone());
         let cell_ref = cell_rc.borrow();
         let draw_args = DrawArgs {

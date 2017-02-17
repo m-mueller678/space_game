@@ -2,8 +2,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use super::ship::*;
 use std::ops::*;
+#[cfg(feature = "graphics")]
 use graphics;
-
 pub const LANE_HEIGHT: i32 = 1000;
 
 pub struct Lane {

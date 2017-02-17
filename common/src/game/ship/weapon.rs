@@ -15,7 +15,8 @@ pub struct TargetArgs<'a> {
 #[derive(Deserialize, Debug, Clone)]
 enum WeaponClass {
     Laser {
-        color: [u8; 3],
+        #[cfg_attr(not(feature = "graphics"), serde(skip_deserializing))]
+        color: graphics::IfGraphics<[u8; 3]>,
         power: u32,
     }
 }
@@ -24,6 +25,7 @@ enum WeaponClass {
 #[derive(Deserialize, Debug, Clone)]
 pub struct Weapon {
     range: i32,
+    #[cfg_attr(not(feature = "graphics"), serde(skip_deserializing))]
     offset: graphics::IfGraphics<(i32, i32)>,
     priority: i32,
     class: WeaponClass,
