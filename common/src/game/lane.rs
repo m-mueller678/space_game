@@ -38,6 +38,7 @@ impl Lane {
         for s in self.ships.iter_mut() {
             s.borrow_mut().tick(self.pos, other);
         }
+        self.ships.retain(|s| s.borrow().health() > 0);
     }
     pub fn distance(&self) -> i32 {
         self.len
