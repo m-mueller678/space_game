@@ -16,7 +16,7 @@ const BUILDER_JSON: &'static str = r###"{
         ],
         "texture":{
             "parts":[
-                {"id":"white","pos":[-40,-10,40,10]}
+                {"id":"null","pos":[-40,-10,40,10]}
             ]
         }
     }"###;
@@ -36,7 +36,6 @@ fn create_push_tick() {
 #[cfg(feature = "graphics")]
 #[test]
 fn draw() {
-    init_thread_texture_path("../textures/");
     let builder: game::ship::base_ship::builder::BaseShipBuilder = serde_json::from_str(BUILDER_JSON).unwrap();
     let mut g = game::Game::new(6, 50);
     g.push_ship(builder.build(), 0, 0);

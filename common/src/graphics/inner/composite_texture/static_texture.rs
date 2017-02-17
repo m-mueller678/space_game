@@ -12,8 +12,14 @@ fn create_null_texture() -> *const Texture {
     Box::into_raw(Box::new(text)) as *const Texture
 }
 
+fn create_texture_map() -> HashMap<String, *const Texture> {
+    let mut hm = HashMap::new();
+    hm.insert("null".to_string(), TEXTURE_NULL.with(|x| *x));
+    hm
+}
+
 thread_local! {
-    static TEXTURES:RefCell<HashMap<String,*const Texture>>=RefCell::new(HashMap::new());
+    static TEXTURES:RefCell<HashMap<String,*const Texture>>=RefCell::new(create_texture_map());
     static TEXTURE_PATH:RefCell<Option<String>>=RefCell::new(None);
     static TEXTURE_NULL:*const Texture=create_null_texture();
 }
