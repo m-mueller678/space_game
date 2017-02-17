@@ -6,7 +6,7 @@ use std::thread::current;
 fn create_null_texture() -> *const Texture {
     let mut text = Texture::new_from_memory(
         include_bytes!("missing_texture.png"),
-        &IntRect::new(0, 0, 8, 8)
+        &IntRect::new(0, 0, 16, 16)
     ).unwrap();
     text.set_repeated(true);
     Box::into_raw(Box::new(text)) as *const Texture
