@@ -18,7 +18,7 @@ fn main() {
         ],
         "texture":{
             "parts":[
-                {"id":"white","pos":[-40,-10,40,10]}
+                {"id":"white.png","pos":[-40,-10,40,10]}
             ]
         }
     }"###;
