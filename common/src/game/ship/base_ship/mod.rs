@@ -93,11 +93,8 @@ impl BaseShip {
     }
 
     pub fn lane_changed(&mut self, l: &Lane) {
-        #[cfg(feature = "graphics")]{
-            use rand::{thread_rng, Rng};
-            let range = l.y_range();
-            self.pos_y = thread_rng().gen_range(range.0, range.1);
-        }
+        let range = l.y_range();
+        self.pos_y = (range.0 + range.1) / 2;
         self.speed = 0;
         self.accel = if l.right_to_left() { self.accel.abs() } else { -self.accel.abs() };
     }
