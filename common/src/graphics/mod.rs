@@ -1,10 +1,16 @@
 #[cfg(feature = "graphics")]
 mod inner {
-    use sfml::graphics as sfml;
-
     mod composite_texture;
+    mod static_texture;
+    mod named_texture;
 
-    pub use self::composite_texture::{CompositeTexture, init_thread_texture_path};
+    pub use self::named_texture::NamedTexture;
+    pub use self::composite_texture::CompositeTexture;
+    pub use self::static_texture::init_thread_texture_path;
+
+    use sfml::graphics as sfml;
+    use self::static_texture::get as get_texture;
+
     pub type IfGraphics<T> = T;
     pub trait RenderTarget: sfml::RenderTarget {}
     impl<T: sfml::RenderTarget> RenderTarget for T {}
@@ -14,6 +20,7 @@ mod inner {
 mod inner {
     use std::marker::PhantomData;
 
+    pub type NamedTexture = ();
     pub type CompositeTexture = ();
     pub type IfGraphics<T> = PhantomData<*const T>;
     pub trait RenderTarget {}

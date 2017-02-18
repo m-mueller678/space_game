@@ -1,7 +1,4 @@
-mod static_texture;
-
-pub use self::static_texture::init_thread_texture_path;
-use self::static_texture::get as get_texture;
+use super::get_texture;
 use sfml::graphics::*;
 use sfml::system::Vector2f;
 
