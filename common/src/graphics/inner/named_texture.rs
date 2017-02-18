@@ -1,13 +1,18 @@
 use sfml::graphics::*;
 use super::get_texture;
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::rc::Rc;
 
-#[derive(Serialize, Clone)]
+#[derive(Clone)]
 pub struct NamedTexture {
     name: String,
-    #[serde(skip_serializing)]
     texture: Rc<Texture>,
+}
+
+impl Serialize for NamedTexture {
+    fn serialize<S: Serializer>(&self, ser: S) -> Result<S::Ok, S::Error> {
+        self.name.serialize(ser)
+    }
 }
 
 impl Deserialize for NamedTexture {
