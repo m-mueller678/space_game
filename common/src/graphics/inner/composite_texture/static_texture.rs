@@ -1,27 +1,28 @@
 use std::collections::hash_map::{Entry, HashMap};
 use sfml::graphics::{Texture, IntRect};
 use std::cell::RefCell;
+use std::rc::Rc;
 use std::thread::current;
 
-fn create_null_texture() -> *const Texture {
+fn create_null_texture() -> Rc<Texture> {
     let mut text = Texture::new_from_memory(
         include_bytes!("missing_texture.png"),
         &IntRect::new(0, 0, 16, 16)
     ).unwrap();
     text.set_repeated(true);
-    Box::into_raw(Box::new(text)) as *const Texture
+    Rc::new(text)
 }
 
-fn create_texture_map() -> HashMap<String, *const Texture> {
+fn create_texture_map() -> HashMap<String, Rc<Texture>> {
     let mut hm = HashMap::new();
-    hm.insert("null".to_string(), TEXTURE_NULL.with(|x| *x));
+    hm.insert("null".to_string(), TEXTURE_NULL.with(|x| x.clone()));
     hm
 }
 
 thread_local! {
-    static TEXTURES:RefCell<HashMap<String,*const Texture>>=RefCell::new(create_texture_map());
+    static TEXTURES:RefCell<HashMap<String,Rc< Texture>>>=RefCell::new(create_texture_map());
     static TEXTURE_PATH:RefCell<Option<String>>=RefCell::new(None);
-    static TEXTURE_NULL:*const Texture=create_null_texture();
+    static TEXTURE_NULL: Rc<Texture>=create_null_texture();
 }
 
 pub fn init_thread_texture_path(path: &str) {
@@ -34,12 +35,12 @@ pub fn init_thread_texture_path(path: &str) {
     });
 }
 
-pub fn get(name: &str) -> &'static Texture {
+pub fn get(name: &str) -> Rc<Texture> {
     TEXTURES.with(|texture_cell| {
         let mut textures = texture_cell.borrow_mut();
-        let ptr_opt: *const Texture = match textures.entry(name.to_string()) {
+        match textures.entry(name.to_string()) {
             Entry::Occupied(e) => {
-                *e.get()
+                e.get().clone()
             },
             Entry::Vacant(e) => {
                 TEXTURE_PATH.with(|path| {
@@ -49,19 +50,18 @@ pub fn get(name: &str) -> &'static Texture {
                     };
                     match Texture::new_from_file(&path) {
                         Some(texture) => {
-                            let tex_ptr = Box::into_raw(Box::new(texture));
-                            *e.insert(tex_ptr)
+                            let tex_ptr = Rc::new(texture);
+                            e.insert(tex_ptr).clone()
                         },
                         None => {
                             use std::io::{stderr, Write};
                             writeln!(&mut stderr(), "error loading texture {:?} from {:?}", name, path).is_ok();
-                            let ptr = TEXTURE_NULL.with(|n| *n);
-                            *e.insert(ptr)
+                            let ptr = TEXTURE_NULL.with(|n| n.clone());
+                            e.insert(ptr).clone()
                         }
                     }
                 })
             }
-        };
-        unsafe { ptr_opt.as_ref::<'static>().unwrap() }
+        }
     })
 }
