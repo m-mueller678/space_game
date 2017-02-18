@@ -28,7 +28,7 @@ enum WeaponClass {
         dmg: Damage,
         speed: i32,
         #[cfg_attr(not(feature = "graphics"), serde(skip_deserializing))]
-        texture: graphics::NamedTexture,
+        sprite: graphics::Sprite,
         cooldown: u32,
         launch_time: u32,
     }
@@ -57,12 +57,12 @@ impl Weapon {
             WeaponClass::Laser { power, .. } => if args.distance < self.range {
                 args.target.borrow_mut().apply_damage(&Damage::Laser(power))
             },
-            WeaponClass::Launcher { ref dmg, ref speed, ref cooldown, ref mut launch_time, ref texture } => {
+            WeaponClass::Launcher { ref dmg, ref speed, ref cooldown, ref mut launch_time, ref sprite } => {
                 *launch_time = launch_time.saturating_sub(1);
                 if *launch_time == 0 && args.distance <= self.range {
                     let x = args.x + self.offset.0;
                     let y = args.y + self.offset.1;
-                    (args.push_projectile)(Projectile::new(args.target.clone(), x, y, *speed, dmg.clone(), texture.clone()));
+                    (args.push_projectile)(Projectile::new(args.target.clone(), x, y, *speed, dmg.clone(), sprite.clone()));
                     *launch_time = *cooldown;
                 }
             }

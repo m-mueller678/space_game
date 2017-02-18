@@ -67,5 +67,8 @@ impl Game {
                 l.draw(target);
             }
         }
+        for p in self.projectiles.iter() {
+            p.draw(target);
+        }
     }
 }

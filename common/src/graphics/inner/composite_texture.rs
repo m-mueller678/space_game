@@ -1,7 +1,5 @@
 use super::Sprite;
-use super::get_texture;
-use super::NamedTexture;
-use sfml::graphics::*;
+use sfml::graphics::{RenderStates, RenderTarget};
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct CompositeTexture {

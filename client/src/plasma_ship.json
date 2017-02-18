@@ -18,7 +18,15 @@
             "Plasma": 500
           },
           "speed": 100,
-          "texture": "null",
+          "sprite": {
+            "texture": "null",
+            "pos": [
+              -30,
+              -30,
+              30,
+              30
+            ]
+          },
           "cooldown": 60,
           "launch_time": 0
         }

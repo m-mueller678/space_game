@@ -11,11 +11,11 @@ pub struct Projectile {
     v_x: i32,
     v_y: i32,
     dmg: Damage,
-    texture: graphics::NamedTexture,
+    sprite: graphics::Sprite,
 }
 
 impl Projectile {
-    pub fn new(target: Rc<RefCell<Ship>>, x: i32, y: i32, v: i32, dmg: Damage, texture: graphics::NamedTexture) -> Self {
+    pub fn new(target: Rc<RefCell<Ship>>, x: i32, y: i32, v: i32, dmg: Damage, sprite: graphics::Sprite) -> Self {
         let weak = Rc::downgrade(&target);
         let target = target.borrow();
         let dx = target.pos_x();
@@ -28,7 +28,7 @@ impl Projectile {
             v_x: dx * v / hyp,
             v_y: dy * v / hyp,
             dmg: dmg,
-            texture: texture,
+            sprite: sprite,
         }
     }
     pub fn tick(&mut self, game_size_x: i32, game_size_y: i32) -> bool {
@@ -53,7 +53,11 @@ impl Projectile {
             self.pos_x >= 0 && self.pos_y >= 0 && self.pos_x < game_size_x && self.pos_y < game_size_y
         }
     }
+    #[cfg(feature = "graphics")]
     pub fn draw<T: graphics::RenderTarget>(&self, rt: &mut T) {
-        unimplemented!()
+        use sfml::graphics::RenderStates;
+        let mut rs = RenderStates::default();
+        rs.transform.translate(self.pos_x as f32, self.pos_y as f32);
+        self.sprite.draw(rt, &mut rs);
     }
 }
