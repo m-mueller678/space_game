@@ -8,20 +8,7 @@ use sfml::system::*;
 
 fn main() {
     init_thread_texture_path("./textures/");
-    let builder = r###"{
-        "laser_dmg_mult":2000000000,
-        "accel":1,
-        "max_speed":20,
-        "max_health":1000,
-        "weapons":[
-            {"range":1000,"offset":[0,0],"priority":20,"class":{"Laser":{"color":[0,0,255],"power":20}}}
-        ],
-        "texture":{
-            "parts":[
-                {"texture":"arrow.png","pos":[-200,-50,0,50]}
-            ]
-        }
-    }"###;
+    let builder = include_str!("plasma_ship.json");
     let builder: game::ship::base_ship::builder::BaseShipBuilder = serde_json::from_str(builder).unwrap();
     let mut g = game::Game::new(4, 10_000);
     g.push_ship(builder.build(), 0, 0);

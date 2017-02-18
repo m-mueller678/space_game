@@ -8,6 +8,7 @@ use sfml::graphics::*;
 
 const BUILDER_JSON: &'static str = r###"{
         "laser_dmg_mult":2000000000,
+        "plasma_dmg_mult":2000000000,
         "accel":1,
         "max_speed":20,
         "max_health":1000,

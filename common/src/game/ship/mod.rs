@@ -2,14 +2,17 @@ pub mod base_ship;
 pub mod weapon;
 pub mod mothership;
 
+use super::projectile::Projectile;
 use super::Lane;
 use graphics;
 
 pub use self::base_ship::BaseShip;
 pub use self::mothership::Mothership;
 
+#[derive(Serialize, Deserialize, Clone)]
 pub enum Damage {
     Laser(u32),
+    Plasma(u32),
 }
 
 pub enum Ship {
@@ -44,9 +47,14 @@ impl ShipTrait for Ship {
     impl_method!(health,u32,);
     impl_method!(max_health,u32,);
     impl_method!(calc_damage,u32,dmg:&Damage);
-    impl_mut_method!(tick,(),lane:usize,others:&[Lane]);
     impl_mut_method!(apply_damage,(),dmg:&Damage);
     impl_mut_method!(lane_changed,(),l:&Lane);
+    fn tick<F: FnMut(Projectile)>(&mut self, lane: usize, others: &[Lane], push_projectile: &mut F) {
+        match *self {
+            Ship::Mothership(ref mut m) => m.tick(lane, others, push_projectile),
+            Ship::BaseShip(ref mut s) => s.tick(lane, others, push_projectile),
+        }
+    }
     #[cfg(feature = "graphics")]
     fn draw<T: graphics::RenderTarget>(&self, t: &mut T, lane: &Lane) {
         match *self {
@@ -60,7 +68,7 @@ impl ShipTrait for Ship {
 pub trait ShipTrait {
     fn pos_x(&self) -> i32;
     fn pos_y(&self) -> i32;
-    fn tick(&mut self, lane: usize, others: &[Lane]);
+    fn tick<F: FnMut(Projectile)>(&mut self, lane: usize, others: &[Lane], push_projectile: &mut F);
     fn lane_changed(&mut self, _: &Lane) {}
     fn health(&self) -> u32;
     fn max_health(&self) -> u32;

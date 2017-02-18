@@ -1,0 +1,41 @@
+{
+  "laser_dmg_mult": 2000000000,
+  "plasma_dmg_mult": 2000000000,
+  "accel": 1,
+  "max_speed": 20,
+  "max_health": 1000,
+  "weapons": [
+    {
+      "range": 1000,
+      "offset": [
+        0,
+        0
+      ],
+      "priority": 20,
+      "class": {
+        "Launcher": {
+          "dmg": {
+            "Plasma": 500
+          },
+          "speed": 100,
+          "texture": "null",
+          "cooldown": 60,
+          "launch_time": 0
+        }
+      }
+    }
+  ],
+  "texture": {
+    "parts": [
+      {
+        "texture": "arrow.png",
+        "pos": [
+          -200,
+          -50,
+          0,
+          50
+        ]
+      }
+    ]
+  }
+}

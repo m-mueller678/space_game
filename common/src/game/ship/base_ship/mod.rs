@@ -16,6 +16,7 @@ pub struct BaseShip {
     pos: i32,
     pos_y: i32,
     laser_dmg_mult: u32,
+    plasma_dmg_mult: u32,
     speed: i32,
     accel: i32,
     max_speed: i32,
@@ -54,36 +55,42 @@ impl BaseShip {
             self.draw_move = m;
         }
     }
-    pub fn pos_x(&self) -> i32 {
-        self.pos
-    }
     pub fn set_pos_x(&mut self, pos: i32) {
         self.pos = pos;
     }
-    pub fn pos_y(&self) -> i32 {
+}
+
+impl ShipTrait for BaseShip {
+    fn pos_x(&self) -> i32 {
+        self.pos
+    }
+    fn pos_y(&self) -> i32 {
         self.pos_y
     }
-    pub fn calc_damage(&self, dmg: &Damage) -> u32 {
+    fn calc_damage(&self, dmg: &Damage) -> u32 {
         match *dmg {
-            Damage::Laser(power) => mul_frac(power, self.laser_dmg_mult)
+            Damage::Laser(power) => mul_frac(power, self.laser_dmg_mult),
+            Damage::Plasma(power) => mul_frac(power, self.plasma_dmg_mult),
         }
     }
-    pub fn apply_damage(&mut self, dmg: &Damage) {
+    fn apply_damage(&mut self, dmg: &Damage) {
         self.health = self.health.saturating_sub(self.calc_damage(dmg));
     }
-    pub fn health(&self) -> u32 {
+    fn health(&self) -> u32 {
         self.health
     }
-    pub fn max_health(&self) -> u32 {
+    fn max_health(&self) -> u32 {
         self.max_health
     }
-    pub fn tick(&mut self, lane: usize, others: &[Lane]) {
+    fn tick<F: FnMut(Projectile)>(&mut self, lane: usize, others: &[Lane], push_projectile: &mut F) {
         let target_rc = self.get_target(&others[lane]);
-        let mut cell_ref = target_rc.borrow_mut();
-        let dist = (cell_ref.pos_x() - self.pos).abs();
-        let mut target_args = TargetArgs {
-            ship: &mut *cell_ref,
+        let dist = (target_rc.borrow().pos_x() - self.pos).abs();
+        let mut target_args = TickArgs {
+            target: target_rc,
             distance: dist,
+            push_projectile: push_projectile,
+            x: self.pos_x(),
+            y: self.pos_y(),
         };
         for w in self.weapons.iter_mut() {
             w.tick(&mut target_args);
@@ -92,14 +99,14 @@ impl BaseShip {
         self.do_move(move_control >= 0);
     }
 
-    pub fn lane_changed(&mut self, l: &Lane) {
+    fn lane_changed(&mut self, l: &Lane) {
         let range = l.y_range();
         self.pos_y = (range.0 + range.1) / 2;
         self.speed = 0;
         self.accel = if l.right_to_left() { self.accel.abs() } else { -self.accel.abs() };
     }
     #[cfg(feature = "graphics")]
-    pub fn draw<T: graphics::RenderTarget>(&self, rt: &mut T, lane: &Lane) {
+    fn draw<T: graphics::RenderTarget>(&self, rt: &mut T, lane: &Lane) {
         use sfml::graphics::*;
 
         let mut rs = RenderStates::default();

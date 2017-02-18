@@ -1,6 +1,8 @@
 pub mod ship;
 mod lane;
+mod projectile;
 
+use self::projectile::Projectile;
 use self::ship::base_ship::BaseShip;
 use self::lane::*;
 #[cfg(feature = "graphics")]
@@ -8,6 +10,7 @@ use graphics;
 
 pub struct Game {
     lanes: [Vec<Lane>; 2],
+    projectiles: Vec<Projectile>,
 }
 
 impl Game {
@@ -18,6 +21,7 @@ impl Game {
         assert!(size > 0);
         let mut g = Game {
             lanes: [Vec::with_capacity(size), Vec::with_capacity(size)],
+            projectiles: Vec::new(),
         };
         for i in 0..size {
             g.lanes[0].push(Lane::new(length, i, false));
@@ -26,12 +30,25 @@ impl Game {
         g
     }
     pub fn tick(&mut self) {
+        {
+            let x = self.size_x();
+            let y = self.size_y();
+            let mut i = 0;
+            while i < self.projectiles.len() {
+                if self.projectiles[i].tick(x, y) {
+                    i += 1;
+                } else {
+                    self.projectiles.swap_remove(i);
+                }
+            }
+        }
         let (l1, l2) = self.lanes.split_at_mut(1);
+        let projectile_ref = &mut self.projectiles;
         for l in l1[0].iter_mut() {
-            l.tick(&mut l2[0])
+            l.tick(&mut l2[0], &mut |x| projectile_ref.push(x))
         }
         for l in l2[0].iter_mut() {
-            l.tick(&mut l1[0])
+            l.tick(&mut l1[0], &mut |x| projectile_ref.push(x))
         }
     }
     pub fn lane(&self, direction: usize) -> &[Lane] {

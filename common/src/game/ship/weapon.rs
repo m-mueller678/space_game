@@ -1,4 +1,6 @@
 use super::*;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 #[cfg(feature = "graphics")]
 pub struct DrawArgs<'a, 'b> {
@@ -6,44 +8,42 @@ pub struct DrawArgs<'a, 'b> {
     pub parent: &'b BaseShip,
 }
 
-pub struct TargetArgs<'a> {
-    pub ship: &'a mut Ship,
+pub struct TickArgs<F: FnMut(Projectile)> {
+    pub target: Rc<RefCell<Ship>>,
     pub distance: i32,
+    pub push_projectile: F,
+    pub x: i32,
+    pub y: i32,
 }
 
 #[cfg_attr(feature = "graphics", derive(Serialize))]
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Clone)]
 enum WeaponClass {
     Laser {
-        #[cfg_attr(not(feature = "graphics"), serde(skip_deserializing))]
+        #[cfg(feature = "graphics")]
         color: graphics::IfGraphics<[u8; 3]>,
         power: u32,
+    },
+    Launcher {
+        dmg: Damage,
+        speed: i32,
+        #[cfg_attr(not(feature = "graphics"), serde(skip_deserializing))]
+        texture: graphics::NamedTexture,
+        cooldown: u32,
+        launch_time: u32,
     }
 }
 
 #[cfg_attr(feature = "graphics", derive(Serialize))]
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Clone)]
 pub struct Weapon {
     range: i32,
-    #[cfg_attr(not(feature = "graphics"), serde(skip_deserializing))]
-    offset: graphics::IfGraphics<(i32, i32)>,
+    offset: (i32, i32),
     priority: i32,
     class: WeaponClass,
 }
 
 impl Weapon {
-    pub fn new_laser(pow: u32, range: i32, priority: i32) -> Self {
-        Weapon {
-            range: range,
-            offset: Default::default(),
-            priority: priority,
-            class: WeaponClass::Laser {
-                color: Default::default(),
-                power: pow,
-            }
-        }
-    }
-
     pub fn control_move(&self, distance: i32) -> i32 {
         if self.range() >= distance {
             -self.priority
@@ -52,22 +52,25 @@ impl Weapon {
         }
     }
 
-    pub fn tick(&mut self, target: &mut TargetArgs) {
+    pub fn tick<F: FnMut(Projectile)>(&mut self, args: &mut TickArgs<F>) {
         match self.class {
-            WeaponClass::Laser { power, .. } => if target.distance < self.range {
-                target.ship.apply_damage(&Damage::Laser(power))
+            WeaponClass::Laser { power, .. } => if args.distance < self.range {
+                args.target.borrow_mut().apply_damage(&Damage::Laser(power))
+            },
+            WeaponClass::Launcher { ref dmg, ref speed, ref cooldown, ref mut launch_time, ref texture } => {
+                *launch_time = launch_time.saturating_sub(1);
+                if *launch_time == 0 && args.distance <= self.range {
+                    let x = args.x + self.offset.0;
+                    let y = args.y + self.offset.1;
+                    (args.push_projectile)(Projectile::new(args.target.clone(), x, y, *speed, dmg.clone(), texture.clone()));
+                    *launch_time = *cooldown;
+                }
             }
         }
     }
 
     pub fn range(&self) -> i32 {
         self.range
-    }
-
-    pub fn damage_100(&self, target: &Ship) -> u32 {
-        match self.class {
-            WeaponClass::Laser { power, .. } => target.calc_damage(&Damage::Laser(power)) * 100
-        }
     }
 
     #[cfg(feature = "graphics")]
@@ -88,7 +91,8 @@ impl Weapon {
                     ];
                     rt.draw_primitives(&ver, PrimitiveType::sfLines, &mut RenderStates::default());
                 }
-            }
+            },
+            WeaponClass::Launcher { .. } => {}
         }
     }
 }

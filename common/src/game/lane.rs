@@ -1,5 +1,7 @@
+use super::projectile::Projectile;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::ops::FnMut;
 use super::ship::*;
 use std::ops::*;
 #[cfg(feature = "graphics")]
@@ -34,9 +36,9 @@ impl Lane {
         }
         self.ships.push(Rc::new(RefCell::new(Ship::BaseShip(s))));
     }
-    pub fn tick(&mut self, other: &mut [Lane]) {
+    pub fn tick<F: FnMut(Projectile)>(&mut self, other: &mut [Lane], push_projectile: &mut F) {
         for s in self.ships.iter_mut() {
-            s.borrow_mut().tick(self.pos, other);
+            s.borrow_mut().tick(self.pos, other, push_projectile);
         }
         self.ships.retain(|s| s.borrow().health() > 0);
     }

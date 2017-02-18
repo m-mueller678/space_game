@@ -4,6 +4,7 @@ use super::*;
 #[derive(Deserialize)]
 pub struct BaseShipBuilder {
     laser_dmg_mult: u32,
+    plasma_dmg_mult: u32,
     accel: i32,
     max_speed: i32,
     max_health: u32,
@@ -19,6 +20,7 @@ impl BaseShipBuilder {
             pos: 0,
             pos_y: 0,
             laser_dmg_mult: self.laser_dmg_mult,
+            plasma_dmg_mult: self.plasma_dmg_mult,
             speed: 0,
             accel: self.accel,
             max_speed: self.max_speed,

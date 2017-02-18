@@ -25,7 +25,7 @@ impl ShipTrait for Mothership {
         self.y
     }
 
-    fn tick(&mut self, _: usize, _: &[Lane]) {}
+    fn tick<F: FnMut(Projectile)>(&mut self, _: usize, _: &[Lane], _: &mut F) {}
 
     fn health(&self) -> u32 {
         self.health
@@ -37,7 +37,8 @@ impl ShipTrait for Mothership {
 
     fn calc_damage(&self, dmg: &Damage) -> u32 {
         match *dmg {
-            Damage::Laser(p) => p
+            Damage::Laser(p) => p,
+            Damage::Plasma(p) => p,
         }
     }
 
