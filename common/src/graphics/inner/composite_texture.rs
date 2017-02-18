@@ -1,10 +1,11 @@
 use super::get_texture;
+use super::NamedTexture;
 use sfml::graphics::*;
 use sfml::system::Vector2f;
 
 #[derive(Clone, Serialize, Deserialize)]
 struct TexturePart {
-    id: String,
+    texture: NamedTexture,
     pos: [i32; 4],
 }
 
@@ -17,7 +18,7 @@ fn draw_part<T: RenderTarget>(part: &TexturePart, rt: &mut T, rs: &mut RenderSta
     fn v2(x: i32, y: i32) -> Vector2f {
         Vector2f::new(x as f32, y as f32)
     }
-    let texture = get_texture(&part.id);
+    let texture = part.texture.texture();
     let t_s = texture.get_size();
     let ver = [
         Vertex::new_with_pos_coords(&v2(part.pos[0], part.pos[1]), &v2(0, 0)),

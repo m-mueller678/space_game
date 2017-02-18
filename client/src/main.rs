@@ -18,7 +18,7 @@ fn main() {
         ],
         "texture":{
             "parts":[
-                {"id":"arrow.png","pos":[-200,-50,0,50]}
+                {"texture":"arrow.png","pos":[-200,-50,0,50]}
             ]
         }
     }"###;

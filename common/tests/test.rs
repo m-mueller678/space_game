@@ -16,7 +16,7 @@ const BUILDER_JSON: &'static str = r###"{
         ],
         "texture":{
             "parts":[
-                {"id":"null","pos":[-40,-10,40,10]}
+                {"texture":"null","pos":[-40,-10,40,10]}
             ]
         }
     }"###;
