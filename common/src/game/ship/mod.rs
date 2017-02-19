@@ -1,6 +1,6 @@
-pub mod base_ship;
-pub mod weapon;
-pub mod mothership;
+mod base_ship;
+mod weapon;
+mod mothership;
 
 use super::projectile::Projectile;
 use super::Lane;
@@ -8,6 +8,8 @@ use graphics;
 
 pub use self::base_ship::BaseShip;
 pub use self::mothership::Mothership;
+pub use self::base_ship::builder::BaseShipBuilder;
+pub use self::weapon::Weapon;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub enum Damage {

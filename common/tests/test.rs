@@ -25,7 +25,7 @@ const BUILDER_JSON: &'static str = r###"{
 #[cfg(not(feature = "graphics"))]
 #[test]
 fn create_push_tick() {
-    let builder: game::ship::base_ship::builder::BaseShipBuilder = serde_json::from_str(BUILDER_JSON).unwrap();
+    let builder: game::ship::BaseShipBuilder = serde_json::from_str(BUILDER_JSON).unwrap();
     let mut g = game::Game::new(6, 50);
     g.push_ship(builder.build(), 0, 0);
     g.push_ship(builder.build(), 1, 0);
@@ -37,7 +37,7 @@ fn create_push_tick() {
 #[cfg(feature = "graphics")]
 #[test]
 fn draw() {
-    let builder: game::ship::base_ship::builder::BaseShipBuilder = serde_json::from_str(BUILDER_JSON).unwrap();
+    let builder: game::ship::BaseShipBuilder = serde_json::from_str(BUILDER_JSON).unwrap();
     let mut g = game::Game::new(6, 50);
     g.push_ship(builder.build(), 0, 0);
     g.push_ship(builder.build(), 1, 0);

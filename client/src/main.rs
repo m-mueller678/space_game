@@ -9,7 +9,7 @@ use sfml::system::*;
 fn main() {
     init_thread_texture_path("./textures/");
     let builder = include_str!("plasma_ship.json");
-    let builder: game::ship::base_ship::builder::BaseShipBuilder = serde_json::from_str(builder).unwrap();
+    let builder: game::ship::BaseShipBuilder = serde_json::from_str(builder).unwrap();
     let mut g = game::Game::new(4, 10_000);
     g.push_ship(builder.build(), 0, 0);
     g.push_ship(builder.build(), 1, 0);

@@ -3,7 +3,7 @@ mod lane;
 mod projectile;
 
 use self::projectile::Projectile;
-use self::ship::base_ship::BaseShip;
+use self::ship::BaseShip;
 use self::lane::*;
 #[cfg(feature = "graphics")]
 use graphics;
