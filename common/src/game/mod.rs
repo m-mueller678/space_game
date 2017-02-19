@@ -71,4 +71,7 @@ impl Game {
             p.draw(target);
         }
     }
+    pub fn lane_y_range(&self, lane: usize) -> (i32, i32) {
+        self.lanes[0][lane].y_range()
+    }
 }
