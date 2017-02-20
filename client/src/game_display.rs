@@ -98,16 +98,21 @@ fn resize(win: V2, game: &mut GameView) {
 fn draw(win: &mut RenderWindow, game: &GameView) {
     win.set_view(&game.view);
     win.clear(&Color::black());
-    let lane_len = min(game.game.size_y(), 50000) as f32;
-    let y_range = game.game.lane_y_range(game.selected);
-    let lane_ver = [
-        Vertex::new_with_pos_color(&Vector2f::new(0., y_range.0 as f32),
-                                   &Color::new_rgba(0, 255, 255, 64)),
-        Vertex::new_with_pos_color(&Vector2f::new(lane_len, (y_range.0 as f32 + y_range.1 as f32) / 2.),
-                                   &Color::new_rgba(0, 255, 255, 64)),
-        Vertex::new_with_pos_color(&Vector2f::new(0., y_range.1 as f32),
-                                   &Color::new_rgba(0, 255, 255, 64)),
-    ];
-    win.draw_primitives(&lane_ver, PrimitiveType::sfTriangles, &mut RenderStates::default());
+    {
+        let lane_len = game.game.size_x() as f32 / 4.;
+        let y_range = game.game.lane_y_range(game.selected);
+        let lane_height = y_range.1 as f32 - y_range.0 as f32;
+        let y_start = y_range.0 as f32 + lane_height * 0.2;
+        let y_end = y_range.1 as f32 - lane_height * 0.2;
+        let col1 = Color::new_rgba(0, 255, 255, 64);
+        let col2 = Color::new_rgba(0, 255, 255, 0);
+        let lane_ver = [
+            Vertex::new_with_pos_color(&Vector2f::new(0., y_start), &col1),
+            Vertex::new_with_pos_color(&Vector2f::new(lane_len, y_start), &col2),
+            Vertex::new_with_pos_color(&Vector2f::new(lane_len, y_end), &col2),
+            Vertex::new_with_pos_color(&Vector2f::new(0., y_end), &col1),
+        ];
+        win.draw_primitives(&lane_ver, PrimitiveType::sfQuads, &mut RenderStates::default());
+    }
     game.game.draw(win);
 }
