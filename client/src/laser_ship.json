@@ -1,0 +1,40 @@
+{
+  "laser_dmg_mult": 2000000000,
+  "plasma_dmg_mult": 2000000000,
+  "accel": 1,
+  "max_speed": 20,
+  "max_health": 1000,
+  "weapons": [
+    {
+      "range": 1000,
+      "offset": [
+        0,
+        0
+      ],
+      "priority": 20,
+      "class": {
+        "Laser": {
+          "power": 20,
+          "color": [
+            255,
+            0,
+            0
+          ]
+        }
+      }
+    }
+  ],
+  "texture": {
+    "parts": [
+      {
+        "texture": "arrow.png",
+        "pos": [
+          -160,
+          -80,
+          0,
+          80
+        ]
+      }
+    ]
+  }
+}

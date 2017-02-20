@@ -14,15 +14,17 @@ struct GameView<'a> {
     view: View,
     selected: usize,
     game: &'a mut Game,
+    player: usize,
 }
 
-pub fn run(win: &mut RenderWindow, game: &mut Game, game_timer: &mut GameTimer) {
+pub fn run(win: &mut RenderWindow, game: &mut Game, game_timer: &mut GameTimer, player: usize) {
     let mut clock = Clock::new();
     let mut game = GameView {
         scroll: 0.,
         view: win.get_view(),
         selected: 0,
         game: game,
+        player: player,
     };
     resize([win.get_size().x as f32, win.get_size().y as f32], &mut game);
     while win.is_open() {
@@ -76,17 +78,29 @@ fn handle_event(game: &mut GameView, evt: Event) -> EventResult {
 }
 
 fn scroll(game: &mut GameView, dist: f32) {
+    game.scroll = (game.scroll + dist).max(0.).min(game.game.size_x() as f32 - game.view.get_size().x.abs());
+    set_view_pos(game);
+}
+
+fn set_view_pos(game: &mut GameView) {
     let view_size = game.view.get_size();
-    game.scroll = (game.scroll + dist).max(0.).min(game.game.size_x() as f32 - view_size.x);
-    game.view.set_center2f(game.scroll + view_size.x / 2., view_size.y / 2.);
+    if game.player == 0 {
+        game.view.set_center2f(
+            game.scroll + view_size.x.abs() / 2.,
+            view_size.y / 2.);
+    } else {
+        game.view.set_center2f(
+            game.game.size_x() as f32 - game.scroll - view_size.x.abs() / 2.,
+            view_size.y / 2.);
+    }
 }
 
 fn resize(win: V2, game: &mut GameView) {
     let draw_h = game.game.size_y() as f32;
     let draw_w = draw_h * win[0] / win[1];
     game.scroll = game.scroll.max(0.).min(game.game.size_x() as f32 - draw_w);
-    game.view.set_center2f(game.scroll + draw_w / 2., draw_h / 2.);
-    game.view.set_size2f(draw_w, draw_h);
+    game.view.set_size2f(if game.player == 0 { draw_w } else { -draw_w }, draw_h);
+    set_view_pos(game);
 }
 
 fn draw(win: &mut RenderWindow, game: &GameView) {
@@ -98,13 +112,18 @@ fn draw(win: &mut RenderWindow, game: &GameView) {
         let lane_height = y_range.1 as f32 - y_range.0 as f32;
         let y_start = y_range.0 as f32 + lane_height * 0.2;
         let y_end = y_range.1 as f32 - lane_height * 0.2;
+        let (x_start, x_end) = if game.player == 0 {
+            (0., lane_len)
+        } else {
+            (game.game.size_x() as f32, game.game.size_x() as f32 - lane_len)
+        };
         let col1 = Color::new_rgba(0, 255, 255, 64);
         let col2 = Color::new_rgba(0, 255, 255, 0);
         let lane_ver = [
-            Vertex::new_with_pos_color(&Vector2f::new(0., y_start), &col1),
-            Vertex::new_with_pos_color(&Vector2f::new(lane_len, y_start), &col2),
-            Vertex::new_with_pos_color(&Vector2f::new(lane_len, y_end), &col2),
-            Vertex::new_with_pos_color(&Vector2f::new(0., y_end), &col1),
+            Vertex::new_with_pos_color(&Vector2f::new(x_start, y_start), &col1),
+            Vertex::new_with_pos_color(&Vector2f::new(x_end, y_start), &col2),
+            Vertex::new_with_pos_color(&Vector2f::new(x_end, y_end), &col2),
+            Vertex::new_with_pos_color(&Vector2f::new(x_start, y_end), &col1),
         ];
         win.draw_primitives(&lane_ver, PrimitiveType::sfQuads, &mut RenderStates::default());
     }

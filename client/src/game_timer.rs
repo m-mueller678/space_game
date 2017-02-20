@@ -5,21 +5,26 @@ use common::game::Game;
 pub struct GameTimer {
     clock: Clock,
     ticks: u32,
-    builder: BaseShipBuilder,
+    builder1: BaseShipBuilder,
+    builder2: BaseShipBuilder,
 }
 
 impl GameTimer {
-    pub fn new(builder: BaseShipBuilder) -> Self {
+    pub fn new(builder1: BaseShipBuilder, builder2: BaseShipBuilder) -> Self {
         GameTimer {
             clock: Clock::new(),
             ticks: 0,
-            builder: builder,
+            builder1: builder1,
+            builder2: builder2,
         }
     }
     pub fn do_ticks(&mut self, game: &mut Game) {
         while self.ticks < self.clock.get_elapsed_time().as_milliseconds() as u32 / 20 {
             if self.ticks % 128 == 0 {
-                game.push_ship(self.builder.build(), self.ticks as usize / 128 % 2, 0);
+                if self.ticks as usize / 128 % 2 == 0 {
+                    game.push_ship(self.builder1.build(), 0, 0);
+                    game.push_ship(self.builder2.build(), 1, 0);
+                }
             }
             game.tick();
             self.ticks += 1;
