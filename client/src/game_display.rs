@@ -82,15 +82,9 @@ fn scroll(game: &mut GameView, dist: f32) {
 }
 
 fn resize(win: V2, game: &mut GameView) {
-    let mut draw_h = game.game.size_y() as f32;
-    let mut draw_w = draw_h * win[0] / win[1];
-    if draw_w > game.game.size_x() as f32 {
-        draw_w = game.game.size_x() as f32;
-        draw_h = draw_w * win[1] / win[0];
-        game.scroll = 0.;
-    } else {
-        game.scroll = game.scroll.min(game.game.size_x() as f32 - draw_w);
-    }
+    let draw_h = game.game.size_y() as f32;
+    let draw_w = draw_h * win[0] / win[1];
+    game.scroll = game.scroll.max(0.).min(game.game.size_x() as f32 - draw_w);
     game.view.set_center2f(game.scroll + draw_w / 2., draw_h / 2.);
     game.view.set_size2f(draw_w, draw_h);
 }
