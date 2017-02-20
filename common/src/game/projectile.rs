@@ -11,6 +11,7 @@ pub struct Projectile {
     v_x: i32,
     v_y: i32,
     dmg: Damage,
+    #[cfg_attr(not(feature = "graphics"), allow(dead_code))]
     sprite: graphics::Sprite,
 }
 

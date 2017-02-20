@@ -33,8 +33,5 @@ impl NamedTexture {
     pub fn texture(&self) -> &Texture {
         self.texture.as_ref()
     }
-    pub fn name(&self) -> &str {
-        &self.name
-    }
 }
 
