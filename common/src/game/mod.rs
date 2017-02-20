@@ -74,4 +74,7 @@ impl Game {
     pub fn lane_y_range(&self, lane: usize) -> (i32, i32) {
         self.lanes[0][lane].y_range()
     }
+    pub fn lane_count(&self) -> usize {
+        self.lanes[0].len()
+    }
 }
