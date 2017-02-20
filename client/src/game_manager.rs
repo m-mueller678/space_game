@@ -2,16 +2,16 @@ use sfml::system::Clock;
 use common::game::ship::BaseShipBuilder;
 use common::game::Game;
 
-pub struct GameTimer {
+pub struct GameManager {
     clock: Clock,
     ticks: u32,
     builder1: BaseShipBuilder,
     builder2: BaseShipBuilder,
 }
 
-impl GameTimer {
+impl GameManager {
     pub fn new(builder1: BaseShipBuilder, builder2: BaseShipBuilder) -> Self {
-        GameTimer {
+        GameManager {
             clock: Clock::new(),
             ticks: 0,
             builder1: builder1,
@@ -29,5 +29,8 @@ impl GameTimer {
             game.tick();
             self.ticks += 1;
         }
+    }
+    pub fn spawn_ship(&mut self, player: usize, lane: usize, builder_id: usize) -> Result<(), ()> {
+        unimplemented!()
     }
 }

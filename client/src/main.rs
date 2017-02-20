@@ -2,12 +2,14 @@ extern crate common;
 extern crate sfml;
 
 mod game_display;
-mod game_timer;
+mod game_manager;
+mod key_manager;
 
 use common::*;
 use sfml::graphics::*;
 use sfml::window::*;
-use game_timer::GameTimer;
+use game_manager::GameManager;
+use key_manager::KeyManager;
 
 fn main() {
     init_thread_texture_path("./textures/");
@@ -19,6 +21,7 @@ fn main() {
                                        window_style::CLOSE | window_style::RESIZE,
                                        &ContextSettings::default()).unwrap();
     window.set_framerate_limit(60);
-    let mut game_timer = GameTimer::new(builder1, builder2);
-    game_display::run(&mut window, &mut g, &mut game_timer, 1);
+    let mut keys = KeyManager::new();
+    let mut game_timer = GameManager::new(builder1, builder2);
+    game_display::run(&mut window, &mut g, &mut game_timer, 1, &mut keys);
 }

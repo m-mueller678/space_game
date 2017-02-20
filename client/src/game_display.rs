@@ -1,4 +1,5 @@
-use super::game_timer::GameTimer;
+use super::game_manager::GameManager;
+use super::key_manager::{Action, KeyManager};
 use common::game::Game;
 use sfml::graphics::*;
 use sfml::window::event::Event;
@@ -9,15 +10,21 @@ use sfml::system::Clock;
 
 type V2 = [f32; 2];
 
-struct GameView<'a> {
+struct GameView<'a, 'b, 'c> {
     scroll: f32,
     view: View,
     selected: usize,
     game: &'a mut Game,
     player: usize,
+    keys: &'b mut KeyManager,
+    manager: &'c mut GameManager,
 }
 
-pub fn run(win: &mut RenderWindow, game: &mut Game, game_timer: &mut GameTimer, player: usize) {
+pub fn run(win: &mut RenderWindow,
+           game: &mut Game,
+           game_manager: &mut GameManager,
+           player: usize,
+           keys: &mut KeyManager) {
     let mut clock = Clock::new();
     let mut game = GameView {
         scroll: 0.,
@@ -25,6 +32,8 @@ pub fn run(win: &mut RenderWindow, game: &mut Game, game_timer: &mut GameTimer, 
         selected: 0,
         game: game,
         player: player,
+        keys: keys,
+        manager: game_manager,
     };
     resize([win.get_size().x as f32, win.get_size().y as f32], &mut game);
     while win.is_open() {
@@ -42,7 +51,7 @@ pub fn run(win: &mut RenderWindow, game: &mut Game, game_timer: &mut GameTimer, 
             let direction = if Key::Right.is_pressed() { 1. } else { -1. };
             scroll(&mut game, direction * dt * 5000.);
         }
-        game_timer.do_ticks(game.game);
+        game.manager.do_ticks(game.game);
         draw(win, &game);
         win.display();
     }
@@ -66,7 +75,14 @@ fn handle_event(game: &mut GameView, evt: Event) -> EventResult {
                 Key::Up => {
                     game.selected = game.selected.saturating_sub(1);
                 },
-                _ => {}
+                k => {
+                    match game.keys.get(&k) {
+                        Some(&Action::SpawnShip(ship_id)) => {
+                            game.manager.spawn_ship(game.player, ship_id, game.selected).unwrap();
+                        }
+                        None => {}
+                    }
+                }
             }
         },
         Event::Closed => {
