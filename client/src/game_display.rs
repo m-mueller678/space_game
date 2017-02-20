@@ -5,7 +5,7 @@ use sfml::graphics::*;
 use sfml::window::event::Event;
 use sfml::window::Key;
 use sfml::system::Vector2f;
-use std::cmp::min;
+use std::cmp::{min, max};
 use sfml::system::Clock;
 
 type V2 = [f32; 2];
@@ -47,8 +47,9 @@ pub fn run(win: &mut RenderWindow,
             }
         }
         let dt = clock.restart().as_seconds();
-        if Key::Right.is_pressed() ^ Key::Left.is_pressed() {
-            let direction = if Key::Right.is_pressed() { 1. } else { -1. };
+        let mouse_x_pos = win.get_mouse_position().x as f32 / win.get_size().x as f32;
+        if (Key::Right.is_pressed() || mouse_x_pos > 0.95) ^ (Key::Left.is_pressed() || mouse_x_pos < 0.05) {
+            let direction = if Key::Right.is_pressed() || mouse_x_pos > 0.95 { 1. } else { -1. };
             scroll(&mut game, direction * dt * 5000.);
         }
         game.manager.do_ticks(game.game);
@@ -85,9 +86,16 @@ fn handle_event(game: &mut GameView, evt: Event) -> EventResult {
                 }
             }
         },
+        Event::MouseWheelMoved { delta, .. } => {
+            if Key::LShift.is_pressed() || Key::RShift.is_pressed() {
+                scroll(game, -delta as f32 * 300.);
+            } else {
+                game.selected = min(max(game.selected as i32 - delta, 0) as usize, game.game.lane_count() - 1);
+            }
+        },
         Event::Closed => {
             return EventResult::Closed;
-        }
+        },
         _ => {}
     }
     EventResult::None
