@@ -5,12 +5,11 @@ authors = ["m-mueller678"]
 
 [features]
 default=[]
-graphics=["sfml","rand","lazy_static"]
+graphics=["sfml"]
+protocol=[]
 
 [dependencies]
 serde_json = "0.9.6"
 serde_derive = "0.9.7"
 serde = "0.9.7"
 sfml={ version="0.11.2", optional=true}
-rand={ version="0.3.15", optional=true}
-lazy_static={ version="0.2.2", optional=true}
