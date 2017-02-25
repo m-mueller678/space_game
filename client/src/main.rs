@@ -6,10 +6,13 @@ mod game_manager;
 mod key_manager;
 
 use common::*;
+use common::protocol::BufStream;
 use sfml::graphics::*;
 use sfml::window::*;
 use game_manager::GameManager;
 use key_manager::KeyManager;
+use std::net::TcpStream;
+use std::env::args;
 
 fn main() {
     init_thread_texture_path("./textures/");
@@ -22,6 +25,7 @@ fn main() {
                                        &ContextSettings::default()).unwrap();
     window.set_framerate_limit(60);
     let mut keys = KeyManager::new();
-    let mut game_timer = GameManager::new(builder1, builder2);
+    let buf_stream = BufStream::new(TcpStream::connect(args().nth(1).unwrap().as_str()).unwrap());
+    let mut game_timer = GameManager::new([vec![builder1], vec![builder2]], buf_stream);
     game_display::run(&mut window, &mut g, &mut game_timer, 1, &mut keys);
 }

@@ -7,6 +7,7 @@ use sfml::window::Key;
 use sfml::system::Vector2f;
 use std::cmp::{min, max};
 use sfml::system::Clock;
+use std::net::TcpStream;
 
 type V2 = [f32; 2];
 
@@ -17,12 +18,12 @@ struct GameView<'a, 'b, 'c> {
     game: &'a mut Game,
     player: usize,
     keys: &'b mut KeyManager,
-    manager: &'c mut GameManager,
+    manager: &'c mut GameManager<TcpStream>,
 }
 
 pub fn run(win: &mut RenderWindow,
            game: &mut Game,
-           game_manager: &mut GameManager,
+           game_manager: &mut GameManager<TcpStream>,
            player: usize,
            keys: &mut KeyManager) {
     let mut clock = Clock::new();
@@ -52,7 +53,7 @@ pub fn run(win: &mut RenderWindow,
             let direction = if Key::Right.is_pressed() || mouse_x_pos > 0.95 { 1. } else { -1. };
             scroll(&mut game, direction * dt * 5000.);
         }
-        game.manager.do_ticks(game.game);
+        game.manager.do_ticks(game.game).unwrap();
         draw(win, &game);
         win.display();
     }
