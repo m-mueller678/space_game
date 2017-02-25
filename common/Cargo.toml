@@ -13,3 +13,12 @@ serde_json = "0.9.6"
 serde_derive = "0.9.7"
 serde = "0.9.7"
 sfml={ version="0.11.2", optional=true}
+
+[lib]
+name = "common"
+path = "src/lib.rs"
+
+[[bin]]
+name = "fake_server"
+path = "src/fake_server.rs"
+test = false

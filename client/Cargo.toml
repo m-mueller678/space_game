@@ -6,3 +6,4 @@ authors = ["m-mueller678"]
 [dependencies]
 common={path="../common",features=["graphics","protocol"]}
 sfml = "0.11.2"
+
