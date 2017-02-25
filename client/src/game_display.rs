@@ -48,9 +48,13 @@ pub fn run(win: &mut RenderWindow,
             }
         }
         let dt = clock.restart().as_seconds();
-        let mouse_x_pos = win.get_mouse_position().x as f32 / win.get_size().x as f32;
-        if (Key::Right.is_pressed() || mouse_x_pos > 0.95) ^ (Key::Left.is_pressed() || mouse_x_pos < 0.05) {
-            let direction = if Key::Right.is_pressed() || mouse_x_pos > 0.95 { 1. } else { -1. };
+        let mouse_pos = win.get_mouse_position();
+        let m_x_pos = mouse_pos.x as f32 / win.get_size().x as f32;
+        let in_win_y = mouse_pos.y >= 0 && mouse_pos.y < win.get_size().y as i32;
+        let scroll_right = Key::Right.is_pressed() || (in_win_y && m_x_pos > 0.95 && m_x_pos < 1.);
+        let scroll_left = Key::Left.is_pressed() || (in_win_y && m_x_pos < 0.05 && m_x_pos > 0.);
+        if scroll_right ^ scroll_left {
+            let direction = if scroll_right { 1. } else { -1. };
             scroll(&mut game, direction * dt * 5000.);
         }
         game.manager.do_ticks(game.game).unwrap();
