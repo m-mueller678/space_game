@@ -1,5 +1,6 @@
 extern crate common;
 extern crate sfml;
+extern crate env_logger;
 
 mod game_display;
 mod game_manager;
@@ -13,8 +14,10 @@ use game_manager::GameManager;
 use key_manager::KeyManager;
 use std::net::TcpStream;
 use std::env::args;
+use std::time::Duration;
 
 fn main() {
+    env_logger::init().unwrap();
     init_thread_texture_path("./textures/");
     let mut g = game::Game::new(4, 10_000);
     let builder1: game::ship::BaseShipBuilder = serde_json::from_str(include_str!("plasma_ship.json")).unwrap();
@@ -25,7 +28,10 @@ fn main() {
                                        &ContextSettings::default()).unwrap();
     window.set_framerate_limit(60);
     let mut keys = KeyManager::new();
-    let buf_stream = BufStream::new(TcpStream::connect(args().nth(1).unwrap().as_str()).unwrap());
+    let raw_stream = TcpStream::connect(args().nth(1).unwrap().as_str()).unwrap();
+    raw_stream.set_read_timeout(Some(Duration::from_millis(1))).unwrap();
+    raw_stream.set_nodelay(true).unwrap();
+    let buf_stream = BufStream::new(raw_stream);
     let mut game_timer = GameManager::new([vec![builder1], vec![builder2]], buf_stream);
     game_display::run(&mut window, &mut g, &mut game_timer, 1, &mut keys);
 }

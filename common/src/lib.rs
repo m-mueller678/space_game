@@ -2,6 +2,8 @@
 extern crate serde_derive;
 extern crate serde;
 pub extern crate serde_json;
+#[macro_use]
+extern crate log;
 
 #[cfg(feature = "graphics")]
 extern crate sfml;

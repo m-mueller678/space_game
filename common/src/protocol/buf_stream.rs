@@ -1,5 +1,5 @@
 use serde_json;
-use std::io::{Read, Write};
+use std::io::{Read, Write, ErrorKind};
 use std::str::from_utf8;
 use serde::{Deserialize, Serialize};
 
@@ -8,6 +8,10 @@ pub struct BufStream<S: Read + Write> {
     buffer: [u8; 16_384],
     len: usize,
     read_to: usize
+}
+
+fn slice_to_string(data: &[u8]) -> String {
+    from_utf8(data).map(|s| s.to_string()).unwrap_or_else(|_| { format!("{:?}", data) })
 }
 
 impl<S: Read + Write> BufStream<S> {
@@ -23,27 +27,34 @@ impl<S: Read + Write> BufStream<S> {
     pub fn read<V: Deserialize>(&mut self) -> Option<Result<V, serde_json::Error>> {
         match self.stream.read(&mut self.buffer[self.len..]) {
             Ok(size) => {
-                let new_len = self.len + size;
-                if let Some(pos) = self.buffer[self.read_to..(new_len)].iter().position(|c| *c == b'\0') {
-                    let abs_null_pos = pos + self.read_to;
-                    let start_other = abs_null_pos + 1;
-                    println!("read: {:?}", from_utf8(&self.buffer[..abs_null_pos]));
-                    let res = serde_json::from_slice(&self.buffer[..abs_null_pos]);
-                    for i in start_other..new_len {
-                        self.buffer[i - start_other] = self.buffer[i];
-                    }
-                    self.len = new_len - start_other;
-                    self.read_to = 0;
-                    Some(res)
-                } else {
-                    self.read_to = self.len;
-                    self.len = new_len;
-                    None
-                }
+                self.len += size;
+                debug!("read {} bytes, buffer: {:?}", size, slice_to_string(&self.buffer[..self.len]));
+                self.read_from_buf()
             },
             Err(e) => {
-                Some(Err(e.into()))
+                if e.kind() == ErrorKind::WouldBlock {
+                    self.read_from_buf()
+                } else {
+                    Some(Err(e.into()))
+                }
             }
+        }
+    }
+
+    fn read_from_buf<V: Deserialize>(&mut self) -> Option<Result<V, serde_json::Error>> {
+        if let Some(pos) = self.buffer[self.read_to..(self.len)].iter().position(|c| *c == b'\0') {
+            let abs_null_pos = pos + self.read_to;
+            let start_other = abs_null_pos + 1;
+            debug!("deserialize to {}: {}", abs_null_pos, slice_to_string(&self.buffer[..abs_null_pos]));
+            let res = serde_json::from_slice(&self.buffer[..abs_null_pos]);
+            for i in start_other..self.len {
+                self.buffer[i - start_other] = self.buffer[i];
+            }
+            self.len -= start_other;
+            self.read_to = 0;
+            Some(res)
+        } else {
+            None
         }
     }
 

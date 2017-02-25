@@ -12,6 +12,7 @@ fn read_stdin(sender: Sender<Vec<u8>>) {
     loop {
         let mut buf = String::new();
         stdin.read_line(&mut buf).unwrap();
+        buf.pop();
         sender.send(buf.into_bytes()).unwrap();
     }
 }
@@ -47,5 +48,6 @@ fn main() {
         }
         let out_buf: Vec<u8> = read_buf.iter().map(|b| if *b == b'\0' { b'\n' } else { *b }).collect();
         stdout.write_all(&out_buf).unwrap();
+        stdout.flush().unwrap();
     }
 }

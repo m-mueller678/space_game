@@ -28,17 +28,21 @@ impl<S: io::Read + io::Write> GameManager<S> {
     }
     pub fn do_ticks(&mut self, game: &mut Game) -> Result<(), Error> {
         macro_rules! assert_data {
-            ($cond:expr)=>{if !$cond {return Err(io::Error::from(io::ErrorKind::InvalidData).into());}}
+            ($cond:expr,$reason:expr)=>{
+                if !$cond {
+                    return Err(io::Error::new(io::ErrorKind::InvalidData,$reason).into());
+                }
+            }
         }
         while let Some(msg) = self.stream.read::<ServerGame>() {
             let mut msg = msg?;
-            assert_data!(msg.tick>=self.ticks+self.frames.len());
+            assert_data!(msg.tick>=self.ticks+self.frames.len(),"server report tick before previous report");
             while msg.tick >= self.ticks + self.frames.len() {
                 self.frames.push_back(Vec::new());
             }
             for (tick, evt) in msg.events.drain(..) {
-                assert_data!(tick<=msg.tick);
-                assert_data!(tick>=self.ticks);
+                assert_data!(tick<=msg.tick,"server event past parent report");
+                assert_data!(tick>=self.ticks,"server event tick before previous report");
                 self.frames[tick - self.ticks].push(evt);
             }
         }
@@ -47,11 +51,12 @@ impl<S: io::Read + io::Write> GameManager<S> {
                 for evt in frame.iter() {
                     match *evt {
                         ServerEvent::SpawnShip { player, lane, id } => {
-                            assert_data!( player > 1 || lane >= game.lane_count());
+                            assert_data!( player <= 1,"invalid player in SpawnShip event");
+                            assert_data!( lane < game.lane_count(),"invalid lane in SpawnShip event");
                             if let Some(builder_ref) = self.builders[player].get(id) {
                                 game.push_ship(builder_ref.build(), player, lane);
                             } else {
-                                assert_data!(false);
+                                assert_data!(false,"invalid ship in SpawnShip event");
                             }
                         }
                     }
