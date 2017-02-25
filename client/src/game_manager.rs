@@ -5,18 +5,19 @@ use common::game::Game;
 use common::protocol::{BufStream, ServerEvent, ServerGame, ClientGame};
 use std::io;
 use common::serde_json::Error;
+use std::net::TcpStream;
 
-pub struct GameManager<S: io::Read + io::Write> {
+pub struct GameManager {
     clock: Clock,
     ticks: usize,
     skip_ticks: usize,
-    stream: BufStream<S>,
+    stream: BufStream<TcpStream>,
     builders: [Vec<BaseShipBuilder>; 2],
     frames: VecDeque<Vec<ServerEvent>>,
 }
 
-impl<S: io::Read + io::Write> GameManager<S> {
-    pub fn new(builders: [Vec<BaseShipBuilder>; 2], stream: BufStream<S>) -> Self {
+impl GameManager {
+    pub fn new(builders: [Vec<BaseShipBuilder>; 2], stream: BufStream<TcpStream>) -> Self {
         GameManager {
             clock: Clock::new(),
             ticks: 0,

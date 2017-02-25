@@ -1,5 +1,6 @@
 use serde_json;
 use std::io::{Read, Write, ErrorKind};
+use std::io;
 use std::str::from_utf8;
 use serde::{Deserialize, Serialize};
 
@@ -29,12 +30,22 @@ impl<S: Read + Write> BufStream<S> {
             Ok(size) => {
                 self.len += size;
                 debug!("read {} bytes, buffer: {:?}", size, slice_to_string(&self.buffer[..self.len]));
-                self.read_from_buf()
+                let result = self.read_from_buf();
+                if result.is_none() && size == 0 {
+                    if self.buffer.len() == self.len {
+                        Some(Err(io::Error::new(ErrorKind::Other, "buffer full").into()))
+                    } else {
+                        Some(Err(io::Error::new(ErrorKind::BrokenPipe, "0 bytes read").into()))
+                    }
+                } else {
+                    result
+                }
             },
             Err(e) => {
                 if e.kind() == ErrorKind::WouldBlock {
                     self.read_from_buf()
                 } else {
+                    warn!("read error: {}", e);
                     Some(Err(e.into()))
                 }
             }
@@ -62,6 +73,10 @@ impl<S: Read + Write> BufStream<S> {
         serde_json::to_writer(&mut self.stream, val)?;
         self.stream.write(&[b'\0'])?;
         Ok(())
+    }
+
+    pub fn raw(&self) -> &S {
+        &self.stream
     }
 }
 

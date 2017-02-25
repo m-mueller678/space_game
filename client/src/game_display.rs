@@ -7,7 +7,6 @@ use sfml::window::Key;
 use sfml::system::Vector2f;
 use std::cmp::{min, max};
 use sfml::system::Clock;
-use std::net::TcpStream;
 
 type V2 = [f32; 2];
 
@@ -18,12 +17,12 @@ struct GameView<'a, 'b, 'c> {
     game: &'a mut Game,
     player: usize,
     keys: &'b mut KeyManager,
-    manager: &'c mut GameManager<TcpStream>,
+    manager: &'c mut GameManager,
 }
 
 pub fn run(win: &mut RenderWindow,
            game: &mut Game,
-           game_manager: &mut GameManager<TcpStream>,
+           game_manager: &mut GameManager,
            player: usize,
            keys: &mut KeyManager) {
     let mut clock = Clock::new();
