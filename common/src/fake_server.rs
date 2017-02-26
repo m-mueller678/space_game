@@ -41,10 +41,14 @@ fn main() {
             }
         }
         let mut read_buf = Vec::new();
-        if let Err(e) = stream.read_to_end(&mut read_buf) {
-            if e.kind() != io::ErrorKind::WouldBlock {
+        match stream.read_to_end(&mut read_buf) {
+            Ok(size) => if size == 0 {
+                stdout.write_all(b"0 bytes read").unwrap();
+                return;
+            },
+            Err(e) => if e.kind() != io::ErrorKind::WouldBlock {
                 panic!(e);
-            }
+            },
         }
         let out_buf: Vec<u8> = read_buf.iter().map(|b| if *b == b'\0' { b'\n' } else { *b }).collect();
         stdout.write_all(&out_buf).unwrap();
