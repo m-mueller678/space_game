@@ -7,8 +7,16 @@ use sfml::window::Key;
 use sfml::system::Vector2f;
 use std::cmp::{min, max};
 use sfml::system::Clock;
+use common::serde_json;
 
 type V2 = [f32; 2];
+
+#[derive(Debug)]
+pub enum RunResult {
+    IoError(serde_json::Error),
+    Quit,
+    Closed,
+}
 
 struct GameView<'a, 'b, 'c> {
     scroll: f32,
@@ -24,7 +32,8 @@ pub fn run(win: &mut RenderWindow,
            game: &mut Game,
            game_manager: &mut GameManager,
            player: usize,
-           keys: &mut KeyManager) {
+           keys: &mut KeyManager)
+           -> RunResult {
     let mut clock = Clock::new();
     let mut game = GameView {
         scroll: 0.,
@@ -42,8 +51,9 @@ pub fn run(win: &mut RenderWindow,
                 EventResult::None => {},
                 EventResult::Closed => {
                     win.close();
-                    return;
-                }
+                    return RunResult::Closed;
+                },
+                EventResult::IoError(e) => return RunResult::IoError(e)
             }
         }
         let dt = clock.restart().as_seconds();
@@ -56,15 +66,19 @@ pub fn run(win: &mut RenderWindow,
             let direction = if scroll_right { 1. } else { -1. };
             scroll(&mut game, direction * dt * 5000.);
         }
-        game.manager.do_ticks(game.game).unwrap();
+        if let Err(e) = game.manager.do_ticks(game.game) {
+            return RunResult::IoError(e);
+        }
         draw(win, &game);
         win.display();
     }
+    RunResult::Closed
 }
 
 enum EventResult {
     None,
     Closed,
+    IoError(serde_json::Error),
 }
 
 fn handle_event(game: &mut GameView, evt: Event) -> EventResult {
@@ -83,7 +97,9 @@ fn handle_event(game: &mut GameView, evt: Event) -> EventResult {
                 k => {
                     match game.keys.get(&k) {
                         Some(&Action::SpawnShip(ship_id)) => {
-                            game.manager.spawn_ship(game.player, ship_id, game.selected).unwrap();
+                            if let Err(e) = game.manager.spawn_ship(game.player, ship_id, game.selected) {
+                                return EventResult::IoError(e);
+                            }
                         }
                         None => {}
                     }
