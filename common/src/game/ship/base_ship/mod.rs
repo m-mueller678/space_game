@@ -103,7 +103,7 @@ impl ShipTrait for BaseShip {
         let range = l.y_range();
         self.pos_y = (range.0 + range.1) / 2;
         self.speed = 0;
-        self.accel = if l.right_to_left() { self.accel.abs() } else { -self.accel.abs() };
+        self.accel = if l.right_to_left() { -self.accel.abs() } else { self.accel.abs() };
     }
     #[cfg(feature = "graphics")]
     fn draw<T: graphics::RenderTarget>(&self, rt: &mut T, lane: &Lane) {

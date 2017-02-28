@@ -18,7 +18,7 @@ pub struct Lane {
 
 impl Lane {
     pub fn new(len: i32, id: usize, right_to_left: bool) -> Self {
-        let mothership = Mothership::new(if right_to_left { 0 } else { len }, id as i32 * LANE_HEIGHT + LANE_HEIGHT / 2);
+        let mothership = Mothership::new(if right_to_left { len } else { 0 }, id as i32 * LANE_HEIGHT + LANE_HEIGHT / 2);
         Lane {
             ships: Vec::new(),
             len: len,
@@ -30,9 +30,9 @@ impl Lane {
     pub fn push(&mut self, mut s: BaseShip) {
         s.lane_changed(self);
         if self.right_to_left {
-            s.set_pos_x(0);
-        } else {
             s.set_pos_x(self.len);
+        } else {
+            s.set_pos_x(0);
         }
         self.ships.push(Rc::new(RefCell::new(Ship::BaseShip(s))));
     }
