@@ -26,46 +26,14 @@ impl<S: Read + Write> BufStream<S> {
     }
 
     pub fn read<V: Deserialize>(&mut self) -> Option<Result<V, serde_json::Error>> {
-        match self.stream.read(&mut self.buffer[self.len..]) {
-            Ok(size) => {
-                self.len += size;
-                debug!("read {} bytes, buffer: {:?}", size, slice_to_string(&self.buffer[..self.len]));
-                let result = self.read_from_buf();
-                if result.is_none() && size == 0 {
-                    if self.buffer.len() == self.len {
-                        Some(Err(io::Error::new(ErrorKind::Other, "buffer full").into()))
-                    } else {
-                        Some(Err(io::Error::new(ErrorKind::BrokenPipe, "0 bytes read").into()))
-                    }
-                } else {
-                    result
-                }
-            },
-            Err(e) => {
-                if e.kind() == ErrorKind::WouldBlock {
-                    self.read_from_buf()
-                } else {
-                    warn!("read error: {}", e);
-                    Some(Err(e.into()))
-                }
-            }
-        }
-    }
-
-    fn read_from_buf<V: Deserialize>(&mut self) -> Option<Result<V, serde_json::Error>> {
-        if let Some(pos) = self.buffer[self.read_to..(self.len)].iter().position(|c| *c == b'\0') {
-            let abs_null_pos = pos + self.read_to;
-            let start_other = abs_null_pos + 1;
-            debug!("deserialize to {}: {}", abs_null_pos, slice_to_string(&self.buffer[..abs_null_pos]));
-            let res = serde_json::from_slice(&self.buffer[..abs_null_pos]);
-            for i in start_other..self.len {
-                self.buffer[i - start_other] = self.buffer[i];
-            }
-            self.len -= start_other;
-            self.read_to = 0;
+        if let Some(res) = self.try_deser() {
             Some(res)
         } else {
-            None
+            if let Err(e) = self.read_to_buffer() {
+                return Some(Err(e.into()))
+            } else {
+                self.try_deser()
+            }
         }
     }
 
@@ -73,6 +41,80 @@ impl<S: Read + Write> BufStream<S> {
         serde_json::to_writer(&mut self.stream, val)?;
         self.stream.write(&[b'\0'])?;
         Ok(())
+    }
+
+    pub fn read_raw(&mut self) -> Option<Result<Vec<u8>, io::Error>> {
+        if let Some(vec) = self.try_extract() {
+            Some(Ok(vec))
+        } else {
+            if let Err(e) = self.read_to_buffer() {
+                return Some(Err(e))
+            } else {
+                self.try_extract().map(|x| Ok(x))
+            }
+        }
+    }
+
+    pub fn write_raw(&mut self, msg: &[u8]) -> Result<(), io::Error> {
+        self.stream.write_all(msg)?;
+        self.stream.write_all(&[b'\0'])
+    }
+
+    fn try_deser<V: Deserialize>(&mut self) -> Option<Result<V, serde_json::Error>> {
+        self.seek_null().and_then(|pos| {
+            let res = serde_json::from_slice(&self.buffer[..pos]);
+            self.shift_buffer(pos);
+            Some(res)
+        })
+    }
+
+    fn try_extract(&mut self) -> Option<Vec<u8>> {
+        self.seek_null().and_then(|pos| {
+            let vec = self.buffer[..pos].to_vec();
+            self.shift_buffer(pos);
+            Some(vec)
+        })
+    }
+
+    fn read_to_buffer(&mut self) -> Result<(), io::Error> {
+        match self.stream.read(&mut self.buffer[self.len..]) {
+            Ok(size) => {
+                self.len += size;
+                debug!("read {} bytes, buffer: {:?}", size, slice_to_string(&self.buffer[..self.len]));
+                if size == 0 {
+                    if self.len == self.buffer.len() {
+                        Err(io::Error::new(ErrorKind::Other, "buffer full"))
+                    } else {
+                        Err(io::Error::new(ErrorKind::BrokenPipe, "0 bytes read"))
+                    }
+                } else {
+                    Ok(())
+                }
+            },
+            Err(e) => {
+                if e.kind() == ErrorKind::WouldBlock {
+                    Ok(())
+                } else {
+                    warn!("read error: {}", e);
+                    Err(e)
+                }
+            }
+        }
+    }
+
+    fn shift_buffer(&mut self, null_pos: usize) {
+        let next_start = null_pos + 1;
+        for i in (next_start)..self.len {
+            self.buffer[i - next_start] = self.buffer[i];
+        }
+        self.len -= next_start;
+        self.read_to = 0;
+    }
+
+    fn seek_null(&mut self) -> Option<usize> {
+        let r = self.buffer[self.read_to..self.len].iter().position(|x| *x == b'\0');
+        self.read_to = r.unwrap_or(self.len);
+        r
     }
 
     pub fn raw(&self) -> &S {
