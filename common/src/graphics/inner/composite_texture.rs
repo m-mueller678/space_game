@@ -1,7 +1,7 @@
 use super::Sprite;
 use sfml::graphics::{RenderStates, RenderTarget};
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct CompositeTexture {
     parts: Vec<Sprite>,
 }

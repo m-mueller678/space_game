@@ -1,7 +1,7 @@
 use super::*;
 
 #[cfg_attr(feature = "graphics", derive(Serialize))]
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct BaseShipBuilder {
     laser_dmg_mult: u32,
     plasma_dmg_mult: u32,

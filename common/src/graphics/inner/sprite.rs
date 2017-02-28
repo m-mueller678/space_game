@@ -2,7 +2,7 @@ use super::NamedTexture;
 use sfml::graphics::{RenderTarget, RenderStates, Vertex, PrimitiveType};
 use sfml::system::Vector2f;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Sprite {
     texture: NamedTexture,
     pos: [f32; 4]

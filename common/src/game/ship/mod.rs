@@ -11,7 +11,7 @@ pub use self::mothership::Mothership;
 pub use self::base_ship::builder::BaseShipBuilder;
 pub use self::weapon::Weapon;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum Damage {
     Laser(u32),
     Plasma(u32),

@@ -17,7 +17,7 @@ pub struct TickArgs<F: FnMut(Projectile)> {
 }
 
 #[cfg_attr(feature = "graphics", derive(Serialize))]
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 enum WeaponClass {
     Laser {
         #[cfg(feature = "graphics")]
@@ -35,7 +35,7 @@ enum WeaponClass {
 }
 
 #[cfg_attr(feature = "graphics", derive(Serialize))]
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct Weapon {
     range: i32,
     offset: (i32, i32),
