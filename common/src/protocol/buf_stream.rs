@@ -3,12 +3,19 @@ use std::io::{Read, Write, ErrorKind};
 use std::io;
 use std::str::from_utf8;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 pub struct BufStream<S: Read + Write> {
     stream: S,
     buffer: [u8; 16_384],
     len: usize,
     read_to: usize
+}
+
+impl<S: fmt::Debug + Read + Write> fmt::Debug for BufStream<S> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        slice_to_string(&self.buffer[..self.len]).fmt(f)
+    }
 }
 
 fn slice_to_string(data: &[u8]) -> String {
@@ -39,7 +46,7 @@ impl<S: Read + Write> BufStream<S> {
 
     pub fn write<V: Serialize>(&mut self, val: &V) -> Result<(), serde_json::Error> {
         serde_json::to_writer(&mut self.stream, val)?;
-        self.stream.write(&[b'\0'])?;
+        self.stream.write_all(&[b'\0'])?;
         Ok(())
     }
 
@@ -112,7 +119,7 @@ impl<S: Read + Write> BufStream<S> {
     }
 
     fn seek_null(&mut self) -> Option<usize> {
-        let r = self.buffer[self.read_to..self.len].iter().position(|x| *x == b'\0');
+        let r = self.buffer[self.read_to..self.len].iter().position(|x| *x == b'\0').map(|p| p + self.read_to);
         self.read_to = r.unwrap_or(self.len);
         r
     }

@@ -9,6 +9,7 @@ use game_manager::GameManager;
 use game_display::{run as run_display, RunResult};
 use std::net::{SocketAddr, TcpStream};
 use std::io;
+use std::time::Duration;
 
 
 fn check_escape(window: &mut RenderWindow) -> bool {
@@ -26,7 +27,7 @@ fn check_escape(window: &mut RenderWindow) -> bool {
 }
 
 macro_rules! message_error {
-    ($window:expr,$msg:expr)=>{loop{
+    ($window:expr,$msg:expr)=>{
         match $msg{
             Some(Ok(other))=>{
                 return RunResult::IoError(io::Error::new
@@ -42,7 +43,7 @@ macro_rules! message_error {
                 $window.display();
             }
         }
-    }}
+    }
 }
 
 pub fn server_create(window: &mut RenderWindow,
@@ -68,7 +69,7 @@ pub fn server_create(window: &mut RenderWindow,
             message_error!(window,msg)
         }
     }
-    println!("{}", join_id);
+    println!("join id:{}", join_id);
     let player_num;
     loop {
         let msg = stream.read();
@@ -77,7 +78,44 @@ pub fn server_create(window: &mut RenderWindow,
             info!("starting game as {}", player);
             break;
         } else {
-            message_error!(window,msg)
+            message_error!(window,msg);
+        }
+    }
+    run(window, stream, own_builders, keys, player_num)
+}
+
+pub fn server_join(window: &mut RenderWindow,
+                   addr: &SocketAddr,
+                   own_builders: Vec<BaseShipBuilder>,
+                   keys: &mut KeyManager,
+                   join_id: u32)
+                   -> RunResult {
+    let mut stream = match create_stream(addr) {
+        Ok(stream) => stream,
+        Err(e) => return RunResult::IoError(e.into()),
+    };
+    if let Err(e) = stream.write(&ClientJoin::Join(join_id)) {
+        return RunResult::IoError(e);
+    }
+    let player_num;
+    loop {
+        match stream.read() {
+            Some(Ok(ServerJoin::JoinFail)) => {
+                return RunResult::IoError(io::Error::new
+                    (io::ErrorKind::InvalidData, format!("cannot join game {} on server {:?}", join_id, addr)).into());
+            },
+            Some(Ok(ServerJoin::Start(player))) => {
+                player_num = player;
+                break;
+            },
+            Some(Ok(msg)) => {
+                return RunResult::IoError(io::Error::new
+                    (io::ErrorKind::InvalidData, format!("unexpected message: {:?}", msg)).into());
+            },
+            Some(Err(e)) => {
+                return RunResult::IoError(e);
+            },
+            None => {}
         }
     }
     run(window, stream, own_builders, keys, player_num)
@@ -85,16 +123,17 @@ pub fn server_create(window: &mut RenderWindow,
 
 fn create_stream(addr: &SocketAddr) -> Result<BufStream<TcpStream>, io::Error> {
     let raw_stream = TcpStream::connect(addr)?;
+    raw_stream.set_read_timeout(Some(Duration::from_millis(1)))?;
     raw_stream.set_nodelay(true)?;
     Ok(BufStream::new(raw_stream))
 }
 
 fn run(window: &mut RenderWindow,
-           mut stream: BufStream<TcpStream>,
-           own_builders: Vec<BaseShipBuilder>,
-           keys: &mut KeyManager,
-           player: usize)
-           -> RunResult {
+       mut stream: BufStream<TcpStream>,
+       own_builders: Vec<BaseShipBuilder>,
+       keys: &mut KeyManager,
+       player: usize)
+       -> RunResult {
     let own_start = ClientStart { ships: own_builders };
     if let Err(e) = stream.write(&own_start) {
         return RunResult::IoError(e);

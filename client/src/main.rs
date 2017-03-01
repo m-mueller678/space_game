@@ -27,5 +27,12 @@ fn main() {
     window.set_framerate_limit(60);
     let mut keys = KeyManager::new();
     keys.insert(Key::Z, key_manager::Action::SpawnShip(0));
-    println!("{:?}", play_server::server_create(&mut window, &args().nth(1).unwrap().parse().unwrap(), vec![builder1, builder2], &mut keys))
+    let address = args().nth(1).unwrap().parse().unwrap();
+    let builders = vec![builder1, builder2];
+    if let Some(arg2) = args().nth(2) {
+        let join_id = arg2.parse().unwrap();
+        println!("{:?}", play_server::server_join(&mut window, &address, builders, &mut keys, join_id));
+    } else {
+        println!("{:?}", play_server::server_create(&mut window, &address, builders, &mut keys));
+    }
 }
