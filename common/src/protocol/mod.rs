@@ -7,9 +7,7 @@ pub use self::buf_stream::BufStream;
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ClientJoin {
     Create,
-    //JoinFail | Created(id)->Start
     Join(u32),
-    //JoinFail | Start
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -33,9 +31,15 @@ pub enum ClientGame {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct ServerGame {
+pub struct ServerGameUpdate {
     pub tick: usize,
     pub events: Vec<(usize, ServerEvent)>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum ServerGame {
+    Update(ServerGameUpdate),
+    OtherDisconnect,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

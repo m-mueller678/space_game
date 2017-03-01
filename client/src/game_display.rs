@@ -15,8 +15,8 @@ type V2 = [f32; 2];
 pub enum RunResult {
     IoError(serde_json::Error),
     Quit,
-    Closed,
 }
+
 
 struct GameView<'a, 'b, 'c> {
     scroll: f32,
@@ -51,7 +51,7 @@ pub fn run(win: &mut RenderWindow,
                 EventResult::None => {},
                 EventResult::Closed => {
                     win.close();
-                    return RunResult::Closed;
+                    return RunResult::Quit;
                 },
                 EventResult::IoError(e) => return RunResult::IoError(e)
             }
@@ -72,7 +72,7 @@ pub fn run(win: &mut RenderWindow,
         draw(win, &game);
         win.display();
     }
-    RunResult::Closed
+    RunResult::Quit
 }
 
 enum EventResult {

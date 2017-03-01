@@ -10,13 +10,10 @@ mod game_manager;
 mod key_manager;
 
 use common::*;
-use common::protocol::BufStream;
 use sfml::graphics::*;
 use sfml::window::*;
 use key_manager::KeyManager;
-use std::net::TcpStream;
 use std::env::args;
-use std::time::Duration;
 
 fn main() {
     env_logger::init().unwrap();
@@ -30,9 +27,5 @@ fn main() {
     window.set_framerate_limit(60);
     let mut keys = KeyManager::new();
     keys.insert(Key::Z, key_manager::Action::SpawnShip(0));
-    let raw_stream = TcpStream::connect(args().nth(1).unwrap().as_str()).unwrap();
-    raw_stream.set_read_timeout(Some(Duration::from_millis(1))).unwrap();
-    raw_stream.set_nodelay(true).unwrap();
-    let buf_stream = BufStream::new(raw_stream);
-    println!("{:?}", play_server::run(&mut window, buf_stream, vec![builder1, builder2], &mut keys, 0))
+    println!("{:?}", play_server::server_create(&mut window, &args().nth(1).unwrap().parse().unwrap(), vec![builder1, builder2], &mut keys))
 }
