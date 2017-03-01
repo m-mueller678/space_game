@@ -26,7 +26,15 @@ mod inner {
 
     pub type Sprite = ();
     pub type CompositeTexture = ();
-    pub type IfGraphics<T> = PhantomData<*const T>;
+
+    #[derive(Default, Clone, Copy, Debug)]
+    pub struct IfGraphics<T> {
+        phantom: PhantomData<*const T>,
+    }
+
+    unsafe impl<T> Sync for IfGraphics<T> {}
+
+    unsafe impl<T> Send for IfGraphics<T> {}
 
     pub trait RenderTarget {}
 
