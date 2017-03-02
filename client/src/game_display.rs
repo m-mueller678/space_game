@@ -60,8 +60,8 @@ pub fn run(win: &mut RenderWindow,
         let mouse_pos = win.get_mouse_position();
         let m_x_pos = mouse_pos.x as f32 / win.get_size().x as f32;
         let in_win_y = mouse_pos.y >= 0 && mouse_pos.y < win.get_size().y as i32;
-        let scroll_right = Key::Right.is_pressed() || (in_win_y && m_x_pos > 0.95 && m_x_pos < 1.);
-        let scroll_left = Key::Left.is_pressed() || (in_win_y && m_x_pos < 0.05 && m_x_pos > 0.);
+        let scroll_right = in_win_y && m_x_pos > 0.95 && m_x_pos < 1.;
+        let scroll_left = in_win_y && m_x_pos < 0.05 && m_x_pos > 0.;
         if scroll_right ^ scroll_left {
             let direction = if scroll_right { 1. } else { -1. };
             scroll(&mut game, direction * dt * 5000.);
@@ -94,6 +94,12 @@ fn handle_event(game: &mut GameView, evt: Event) -> EventResult {
                 Key::Up => {
                     game.selected = game.selected.saturating_sub(1);
                 },
+                Key::Right => {
+                    scroll(game, 100.);
+                },
+                Key::Left => {
+                    scroll(game, -100.);
+                }
                 k => {
                     match game.keys.get(&k) {
                         Some(&Action::SpawnShip(ship_id)) => {
