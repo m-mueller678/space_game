@@ -4,11 +4,10 @@ extern crate time;
 #[macro_use]
 extern crate log;
 extern crate env_logger;
-extern crate threadpool;
 
 use std::env::args;
 
-mod game_container;
+mod game_pool;
 mod server;
 
 pub fn main() {

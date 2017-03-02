@@ -5,12 +5,11 @@ use std::mem;
 use mio::tcp::{TcpStream, TcpListener};
 use mio::{Poll, Token, Ready, PollOpt, Events};
 use common::protocol::*;
-use game_container::GameContainer;
+use game_pool::{GameHandle, GameThreadPool};
 use common::game::ship::BaseShipBuilder;
 use common::serde_json::from_slice;
 use common::serde::Serialize;
 use std::fmt::Debug;
-use game_container::GameThreadPool;
 
 pub type Stream = BufStream<TcpStream>;
 
@@ -21,7 +20,7 @@ enum PlayerState {
     Waiting(Stream, u32),
     Preparing(Stream, usize, bool),
     Ready(Stream, Vec<BaseShipBuilder>, bool),
-    Playing(GameContainer, usize),
+    Playing(GameHandle, usize),
 
     Locked,
 }
