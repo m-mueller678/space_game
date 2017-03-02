@@ -16,11 +16,11 @@ pub type Stream = BufStream<TcpStream>;
 #[derive(Debug)]
 enum PlayerState {
     Empty,
-    New(Stream),
-    Waiting(Stream, u32),
-    Preparing(Stream, usize, bool),
-    Ready(Stream, Vec<BaseShipBuilder>, bool),
-    Playing(GameHandle, usize),
+    New { stream: Stream },
+    Waiting { stream: Stream, join_id: u32 },
+    Preparing { stream: Stream, other_id: usize, second: bool },
+    Ready { stream: Stream, other_id: usize, builders: Vec<BaseShipBuilder>, second: bool },
+    Playing { game: GameHandle, other_id: usize },
 
     Locked,
 }
@@ -47,14 +47,14 @@ impl Server {
                             error!("cannot register tcp stream {:?} to poll: {:?}", stream, e);
                         } else {
                             info!("put {:?} into slot {}", address, p);
-                            self.players[p] = PlayerState::New(BufStream::new(stream))
+                            self.players[p] = PlayerState::New { stream: BufStream::new(stream) }
                         }
                     } else if self.players.len() < MAX_PLAYERS {
                         if let Err(e) = self.poll.register(&stream, Token(self.players.len()), ready, PollOpt::edge()) {
                             error!("cannot register tcp stream {:?} to poll: {:?}", stream, e);
                         } else {
                             info!("put {:?} into slot {}", address, self.players.len());
-                            self.players.push(PlayerState::New(BufStream::new(stream)));
+                            self.players.push(PlayerState::New { stream: BufStream::new(stream) });
                         }
                     } else {
                         //drop stream
@@ -76,110 +76,120 @@ impl Server {
     }
     fn try_read_stream(&mut self, id: usize) -> bool {
         let state = mem::replace(&mut self.players[id], PlayerState::Locked);
-        match state {
-            PlayerState::New(stream) => {
+        let (ret, ps) = match state {
+            PlayerState::New { stream } => {
                 self.receive_from_new(stream, id)
             },
             PlayerState::Empty => unreachable!(),
             PlayerState::Locked => unreachable!(),
-            PlayerState::Waiting(mut stream, join_id) => {
+            PlayerState::Waiting { mut stream, join_id } => {
                 if stream.read_raw().is_some() {
                     info!("message from {} while waiting", id);
-                    self.players[id] = PlayerState::Empty;
+                    (false, PlayerState::Empty)
                 } else {
-                    self.players[id] = PlayerState::Waiting(stream, join_id);
+                    (false, PlayerState::Waiting { stream: stream, join_id: join_id })
                 }
-                false
             },
-            PlayerState::Ready(mut stream, builders, second) => {
+            PlayerState::Ready { mut stream, other_id, builders, second } => {
                 if stream.read_raw().is_some() {
-                    info!("message from {} while waiting", id);
-                    self.players[id] = PlayerState::Empty;
+                    info!("message from {} while preparing", id);
+                    (false, PlayerState::Empty)
                 } else {
-                    self.players[id] = PlayerState::Ready(stream, builders, second);
+                    (false, PlayerState::Ready {
+                        stream: stream,
+                        other_id: other_id,
+                        builders: builders,
+                        second: second
+                    })
                 }
-                false
             },
 
-            PlayerState::Preparing(stream, other_id, second) => {
+            PlayerState::Preparing { stream, other_id, second } => {
                 self.receive_preparing(stream, id, other_id, second)
             },
-            PlayerState::Playing(game, other_id) => {
+            PlayerState::Playing { game, other_id } => {
                 if game.try_read().is_err() {
-                    self.players[id] = PlayerState::Empty;
                     self.players[other_id] = PlayerState::Empty;
+                    (false, PlayerState::Empty)
                 } else {
-                    self.players[id] = PlayerState::Playing(game, other_id);
+                    (false, PlayerState::Playing { game: game, other_id: other_id })
                 }
-                false
             }
-        }
+        };
+        self.players[id] = ps;
+        ret
     }
-    fn receive_preparing(&mut self, mut stream: Stream, id: usize, other_id: usize, second: bool) -> bool {
+    fn receive_preparing(&mut self, mut stream: Stream, id: usize, other_id: usize, second: bool) -> (bool, PlayerState) {
         match stream.read_raw() {
             Some(Ok(raw_msg)) => {
                 match from_slice(&raw_msg) {
                     Ok(ClientStart { ships }) => {
                         let other_state = mem::replace(&mut self.players[other_id], PlayerState::Locked);
-                        match other_state {
-                            PlayerState::Preparing(mut stream2, _, second2) => {
+                        let (ret, ps1, ps2) = match other_state {
+                            PlayerState::Preparing { stream: mut stream2, second: second2, other_id } => {
                                 if let Err(e) = stream2.write_raw(&raw_msg) {
                                     self.remove_send_err(&stream2, other_id, e);
-                                    self.drop_preparing(id);
-                                    false
+                                    (false, PlayerState::Empty, PlayerState::Empty)
                                 } else {
-                                    self.players[id] = PlayerState::Ready(stream, ships, !second2);
-                                    self.players[other_id] = PlayerState::Preparing(stream2, id, second2);
-                                    true
+                                    (true,
+                                     PlayerState::Ready {
+                                         stream: stream,
+                                         builders: ships,
+                                         other_id: other_id,
+                                         second: second
+                                     }, PlayerState::Preparing {
+                                        stream: stream2,
+                                        other_id: id,
+                                        second: second2
+                                    })
                                 }
                             },
-                            PlayerState::Ready(mut stream2, builder2, second2) => {
+                            PlayerState::Ready { stream: mut stream2, builders: builder2, second: second2, .. } => {
                                 if let Err(e) = stream2.write_raw(&raw_msg) {
                                     self.remove_send_err(&stream2, other_id, e);
-                                    self.drop_preparing(id);
-                                    false
+                                    (false, PlayerState::Empty, PlayerState::Empty)
                                 } else {
+                                    info!("{} and {} started playing", id, other_id);
                                     if second2 {
                                         let (g1, g2) = self.game_pool.push(((stream, ships), (stream2, builder2)));
-                                        self.players[id] = PlayerState::Playing(g1, other_id);
-                                        self.players[other_id] = PlayerState::Playing(g2, id);
+                                        (true,
+                                         PlayerState::Playing { game: g1, other_id: other_id },
+                                         PlayerState::Playing { game: g2, other_id: id })
                                     } else {
                                         let (g2, g1) = self.game_pool.push(((stream2, builder2), (stream, ships)));
-                                        self.players[id] = PlayerState::Playing(g1, other_id);
-                                        self.players[other_id] = PlayerState::Playing(g2, id);
-                                    };
-                                    info!("{} and {} started playing", id, other_id);
-                                    true
+                                        (true,
+                                         PlayerState::Playing { game: g1, other_id: other_id },
+                                         PlayerState::Playing { game: g2, other_id: id })
+                                    }
                                 }
                             },
                             _ => unreachable!()
-                        }
+                        };
+                        self.players[other_id] = ps2;
+                        (ret, ps1)
                     },
                     Err(e) => {
                         info!("error parsing builders from {}: {:?}", id, e);
-                        self.players[id] = PlayerState::Empty;
                         self.drop_preparing(other_id);
-                        false
+                        (false, PlayerState::Empty)
                     }
                 }
             },
             Some(Err(e)) => {
                 info!("io error from {}: {:?}", id, e);
-                self.players[id] = PlayerState::Empty;
                 self.drop_preparing(other_id);
-                false
+                (false, PlayerState::Empty)
             },
             None => {
-                self.players[id] = PlayerState::Preparing(stream, other_id, second);
-                false
+                (false, PlayerState::Preparing { stream: stream, other_id: other_id, second: second })
             }
         }
     }
-    fn receive_from_new(&mut self, mut stream: Stream, id: usize) -> bool {
+    fn receive_from_new(&mut self, mut stream: Stream, id: usize) -> (bool, PlayerState) {
         match stream.read() {
             Some(Ok(ClientJoin::Join(join_id))) => {
                 let pos_opt = self.players.iter().position(|p| match *p {
-                    PlayerState::Waiting(_, x) if x == join_id => true,
+                    PlayerState::Waiting { join_id: x, .. } if x == join_id => true,
                     _ => false,
                 });
                 if let Some(id2) = pos_opt {
@@ -187,10 +197,9 @@ impl Server {
                 } else {
                     if self.send_or_remove(id, &mut stream, &ServerJoin::JoinFail) {
                         info!("{} tried to join game {}", id, join_id);
-                        self.players[id] = PlayerState::New(stream);
-                        true
+                        (true, PlayerState::New { stream: stream })
                     } else {
-                        false
+                        (false, PlayerState::Empty)
                     }
                 }
             },
@@ -198,43 +207,36 @@ impl Server {
                 let join_id = id as u32;
                 if self.send_or_remove(id, &mut stream, &ServerJoin::Created(join_id)) {
                     info!("{} creates game", id);
-                    self.players[id] = PlayerState::Waiting(stream, join_id);
-                    true
+                    (true, PlayerState::Waiting { stream: stream, join_id: join_id })
                 } else {
-                    false
+                    (false, PlayerState::Empty)
                 }
             },
             Some(Err(e)) => {
                 info!("error reading from {:?}: {:?}", stream.raw().peer_addr(), e);
-                self.players[id] = PlayerState::Empty;
-                false
+                (false, PlayerState::Empty)
             },
-            None => {
-                self.players[id] = PlayerState::New(stream);
-                false
-            }
+            None => (false, PlayerState::New { stream: stream })
         }
     }
-    fn join_game(&mut self, mut stream: Stream, id: usize, id2: usize) -> bool {
-        if let PlayerState::Waiting(mut stream2, _) = mem::replace(&mut self.players[id2], PlayerState::Locked) {
+    fn join_game(&mut self, mut stream: Stream, id: usize, id2: usize) -> (bool, PlayerState) {
+        if let PlayerState::Waiting { stream: mut stream2, .. } = mem::replace(&mut self.players[id2], PlayerState::Locked) {
             if self.send_or_remove(id2, &mut stream2, &ServerJoin::Start(1)) {
                 if self.send_or_remove(id, &mut stream, &ServerJoin::Start(0)) {
                     info!("{} joins game created by {}", id, id2);
-                    self.players[id2] = PlayerState::Preparing(stream2, id, true);
-                    self.players[id] = PlayerState::Preparing(stream, id2, false);
-                    true
+                    self.players[id2] = PlayerState::Preparing { stream: stream2, other_id: id, second: true };
+                    (true, PlayerState::Preparing { stream: stream, other_id: id2, second: false })
                 } else {
                     info!("{} was dropped because of failed join by {}", id2, id);
                     self.drop_preparing(id2);
-                    false
+                    (false, PlayerState::Empty)
                 }
             } else {
                 if self.send_or_remove(id, &mut stream, &ServerJoin::JoinFail) {
                     info!("{} did not respond to join request from {}", id2, id);
-                    self.players[id] = PlayerState::New(stream);
-                    true
+                    (true, PlayerState::New { stream: stream })
                 } else {
-                    false
+                    (false, PlayerState::Empty)
                 }
             }
         } else {
@@ -254,6 +256,24 @@ impl Server {
         self.players[id] = PlayerState::Empty;
     }
     fn drop_preparing(&mut self, id: usize) {
+        self.players[id] = PlayerState::Empty;
+    }
+    fn remove(&mut self, id: usize) {
+        info!("remove player {}", id);
+        match self.players[id] {
+            PlayerState::Empty
+            | PlayerState::Locked
+            | PlayerState::Waiting { .. }
+            | PlayerState::New { .. } => {
+                self.players[id] = PlayerState::Empty
+            },
+            PlayerState::Preparing { other_id, .. }
+            | PlayerState::Ready { other_id, .. }
+            | PlayerState::Playing { other_id, .. } => {
+                self.drop_preparing(other_id);
+                info!("\tdrop player {}", other_id);
+            },
+        }
         self.players[id] = PlayerState::Empty;
     }
 }
@@ -284,7 +304,11 @@ pub fn run(address: &str, num_threads: usize) -> ! {
                     panic!("listener error: {:?}", server.listener.take_error());
                 }
             } else {
-                server.drain_stream(id);
+                if kind.is_hup() || kind.is_error() {
+                    server.remove(id);
+                } else {
+                    server.drain_stream(id);
+                }
             }
         }
     }
