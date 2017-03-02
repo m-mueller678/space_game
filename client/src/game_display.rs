@@ -97,7 +97,7 @@ fn handle_event(game: &mut GameView, evt: Event) -> EventResult {
                 k => {
                     match game.keys.get(&k) {
                         Some(&Action::SpawnShip(ship_id)) => {
-                            if let Err(e) = game.manager.spawn_ship(game.player, ship_id, game.selected) {
+                            if let Err(e) = game.manager.spawn_ship(game.player, game.selected, ship_id) {
                                 return EventResult::IoError(e);
                             }
                         }
