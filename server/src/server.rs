@@ -9,7 +9,7 @@ use game_pool::{GameHandle, GameThreadPool};
 use common::game::ship::BaseShipBuilder;
 use common::serde_json::from_slice;
 use common::serde::Serialize;
-use std::fmt::Debug;
+use std::fmt::{Display, Debug};
 
 pub type Stream = BufStream<TcpStream>;
 
@@ -258,23 +258,43 @@ impl Server {
     fn drop_preparing(&mut self, id: usize) {
         self.players[id] = PlayerState::Empty;
     }
-    fn remove(&mut self, id: usize) {
-        info!("remove player {}", id);
+    fn remove<Msg: Display + ? Sized>(&mut self, id: usize, cause: &Msg) {
         match self.players[id] {
             PlayerState::Empty
             | PlayerState::Locked
             | PlayerState::Waiting { .. }
             | PlayerState::New { .. } => {
-                self.players[id] = PlayerState::Empty
+                self.players[id] = PlayerState::Empty;
+                info!("remove player {}: {}", id, cause);
             },
             PlayerState::Preparing { other_id, .. }
             | PlayerState::Ready { other_id, .. }
             | PlayerState::Playing { other_id, .. } => {
                 self.drop_preparing(other_id);
-                info!("\tdrop player {}", other_id);
+                info!("remove player {}: {} and {}", id, cause, other_id);
             },
         }
         self.players[id] = PlayerState::Empty;
+    }
+    fn clear_games(&mut self) {
+        let len = self.players.len();
+        for i in 0..len {
+            if let Some(other_id) = match self.players[i] {
+                PlayerState::Playing { other_id, ref game } => {
+                    if game.is_active() {
+                        None
+                    } else {
+                        Some(other_id)
+                    }
+                },
+                _ => None,
+            } {
+                assert!(other_id > i);
+                info!("game {},{} finished", i, other_id);
+                self.players[i] = PlayerState::Empty;
+                self.players[other_id] = PlayerState::Empty;
+            }
+        }
     }
 }
 
@@ -293,6 +313,7 @@ pub fn run(address: &str, num_threads: usize) -> ! {
         .expect("cannot register tcp listener to poll");
     let mut events = Events::with_capacity(256);
     loop {
+        server.clear_games();
         server.poll.poll(&mut events, None).expect("polling");
         for e in events.iter() {
             let kind = e.kind();
@@ -304,8 +325,10 @@ pub fn run(address: &str, num_threads: usize) -> ! {
                     panic!("listener error: {:?}", server.listener.take_error());
                 }
             } else {
-                if kind.is_hup() || kind.is_error() {
-                    server.remove(id);
+                if kind.is_hup() {
+                    server.remove(id, "hup");
+                } else if kind.is_error() {
+                    server.remove(id, "io error");
                 } else {
                     server.drain_stream(id);
                 }

@@ -7,7 +7,7 @@ use std::thread;
 use mio::tcp::TcpStream;
 use common::protocol::*;
 use common::game::ship::BaseShipBuilder;
-use self::game_container::GameContainer;
+use self::game_container::{ReadReady, GameContainer};
 
 type GameStartArg = ((BufStream<TcpStream>, Vec<BaseShipBuilder>), (BufStream<TcpStream>, Vec<BaseShipBuilder>));
 
@@ -17,7 +17,7 @@ pub struct GameThreadPool {
 
 struct GameThread {
     game_count: Arc<AtomicUsize>,
-    sender: Sender<(GameStartArg, Receiver<usize>)>,
+    sender: Sender<(GameStartArg, Receiver<ReadReady>)>,
 }
 
 impl GameThread {
@@ -31,12 +31,12 @@ impl GameThread {
         thread::spawn(move || run_games(rec, count_clone));
         r
     }
-    fn push(&mut self, gsa: GameStartArg, poll_rec: Receiver<usize>) {
+    fn push(&mut self, gsa: GameStartArg, poll_rec: Receiver<ReadReady>) {
         self.sender.send((gsa, poll_rec)).unwrap();
     }
 }
 
-fn run_games(rec: Receiver<(GameStartArg, Receiver<usize>)>, game_count: Arc<AtomicUsize>) {
+fn run_games(rec: Receiver<(GameStartArg, Receiver<ReadReady>)>, game_count: Arc<AtomicUsize>) {
     let mut games = Vec::new();
     loop {
         loop {
@@ -54,6 +54,7 @@ fn run_games(rec: Receiver<(GameStartArg, Receiver<usize>)>, game_count: Arc<Ato
             if games[i].do_work() {
                 i += 1;
             } else {
+                debug!("removed game container");
                 games.swap_remove(i);
                 game_count.fetch_sub(1, Ordering::Relaxed);
             }
@@ -86,12 +87,19 @@ impl GameThreadPool {
 
 #[derive(Debug)]
 pub struct GameHandle {
-    sender: Sender<usize>,
+    sender: Sender<ReadReady>,
     player_num: usize,
 }
 
 impl GameHandle {
     pub fn try_read(&self) -> Result<(), ()> {
-        self.sender.send(self.player_num).map_err(|_| {})
+        if self.player_num == 0 {
+            self.sender.send(ReadReady::Read1).map_err(|_| {})
+        } else {
+            self.sender.send(ReadReady::Read2).map_err(|_| {})
+        }
+    }
+    pub fn is_active(&self) -> bool {
+        self.sender.send(ReadReady::None).is_ok()
     }
 }

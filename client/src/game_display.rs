@@ -8,6 +8,7 @@ use sfml::system::Vector2f;
 use std::cmp::{min, max};
 use sfml::system::Clock;
 use common::serde_json;
+use common::serde::de::Error as ErrorTrait;
 
 type V2 = [f32; 2];
 
@@ -15,6 +16,8 @@ type V2 = [f32; 2];
 pub enum RunResult {
     IoError(serde_json::Error),
     Quit,
+    Win,
+    Lose,
 }
 
 
@@ -66,8 +69,17 @@ pub fn run(win: &mut RenderWindow,
             let direction = if scroll_right { 1. } else { -1. };
             scroll(&mut game, direction * dt * 5000.);
         }
-        if let Err(e) = game.manager.do_ticks(game.game) {
-            return RunResult::IoError(e);
+        match game.manager.do_ticks(game.game) {
+            Err(e) => return RunResult::IoError(e),
+            Ok(true) => match game.game.winner() {
+                Some(p) => if p == player {
+                    return RunResult::Win
+                } else {
+                    return RunResult::Lose
+                },
+                None => return RunResult::IoError(serde_json::Error::custom("unexpected end from server")),
+            },
+            Ok(false) => {}
         }
         draw(win, &game);
         win.display();

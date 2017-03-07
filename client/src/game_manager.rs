@@ -8,6 +8,7 @@ use common::serde_json::Error;
 use std::net::TcpStream;
 
 pub struct GameManager {
+    end_received: bool,
     clock: Clock,
     skip_ticks: usize,
     stream: BufStream<TcpStream>,
@@ -74,6 +75,7 @@ impl FrameManager {
 impl GameManager {
     pub fn new(builders: [Vec<BaseShipBuilder>; 2], stream: BufStream<TcpStream>) -> Self {
         GameManager {
+            end_received: false,
             clock: Clock::new(),
             skip_ticks: 0,
             stream: stream,
@@ -84,8 +86,8 @@ impl GameManager {
             }
         }
     }
-    pub fn do_ticks(&mut self, game: &mut Game) -> Result<(), Error> {
-        loop {
+    pub fn do_ticks(&mut self, game: &mut Game) -> Result<bool, Error> {
+        while !self.end_received {
             match self.stream.read() {
                 Some(Ok(ServerGame::Update(msg))) => {
                     self.frames.push_report(msg)?;
@@ -93,6 +95,9 @@ impl GameManager {
                 Some(Ok(ServerGame::OtherDisconnect)) => {
                     use common::serde::de::Error;
                     return Err(Error::custom("other disconnect"))
+                },
+                Some(Ok(ServerGame::End)) => {
+                    self.end_received = true;
                 }
                 Some(Err(e)) => return Err(e),
                 None => break
@@ -103,7 +108,7 @@ impl GameManager {
                 self.skip_ticks += 1;
             }
         }
-        Ok(())
+        Ok(self.end_received && self.frames.frames.is_empty())
     }
     #[allow(unused_variables)]
     pub fn spawn_ship(&mut self, player: usize, lane: usize, builder_id: usize) -> Result<(), Error> {

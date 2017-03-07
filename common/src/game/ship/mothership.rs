@@ -1,17 +1,22 @@
 use super::*;
 
+use std::cell::Cell;
+use std::rc::Rc;
+
+pub const MOTHERSHIP_MAX_HEALTH: u32 = 1_000_000;
+
 pub struct Mothership {
     x: i32,
     y: i32,
-    health: u32
+    health: Rc<Cell<u32>>
 }
 
 impl Mothership {
-    pub fn new(x: i32, y: i32) -> Self {
+    pub fn new(health: Rc<Cell<u32>>, x: i32, y: i32) -> Self {
         Mothership {
             x: x,
             y: y,
-            health: 10_000,
+            health: health,
         }
     }
 }
@@ -28,11 +33,11 @@ impl ShipTrait for Mothership {
     fn tick<F: FnMut(Projectile)>(&mut self, _: usize, _: &[Lane], _: &mut F) {}
 
     fn health(&self) -> u32 {
-        self.health
+        self.health.get()
     }
 
     fn max_health(&self) -> u32 {
-        10000
+        MOTHERSHIP_MAX_HEALTH
     }
 
     fn calc_damage(&self, dmg: &Damage) -> u32 {
@@ -43,8 +48,10 @@ impl ShipTrait for Mothership {
     }
 
     fn apply_damage(&mut self, dmg: &Damage) {
-        self.health = self.health.saturating_sub(self.calc_damage(dmg));
+        let new_health = self.health.get().saturating_sub(self.calc_damage(dmg));
+        self.health.set(new_health);
     }
+
     #[cfg(feature = "graphics")]
     fn draw<T: graphics::RenderTarget>(&self, _: &mut T, _: &Lane) {}
 }

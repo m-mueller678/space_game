@@ -7,7 +7,7 @@ use super::Lane;
 use graphics;
 
 pub use self::base_ship::BaseShip;
-pub use self::mothership::Mothership;
+pub use self::mothership::{Mothership, MOTHERSHIP_MAX_HEALTH};
 pub use self::base_ship::builder::BaseShipBuilder;
 pub use self::weapon::Weapon;
 

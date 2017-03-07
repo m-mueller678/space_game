@@ -1,11 +1,12 @@
 use super::projectile::Projectile;
-use std::cell::RefCell;
+use std::cell::{RefCell, Cell};
 use std::rc::Rc;
 use std::ops::FnMut;
 use super::ship::*;
 use std::ops::*;
 #[cfg(feature = "graphics")]
 use graphics;
+
 pub const LANE_HEIGHT: i32 = 1000;
 
 pub struct Lane {
@@ -17,8 +18,11 @@ pub struct Lane {
 }
 
 impl Lane {
-    pub fn new(len: i32, id: usize, right_to_left: bool) -> Self {
-        let mothership = Mothership::new(if right_to_left { len } else { 0 }, id as i32 * LANE_HEIGHT + LANE_HEIGHT / 2);
+    pub fn new(mothership_health: Rc<Cell<u32>>, len: i32, id: usize, right_to_left: bool) -> Self {
+        let mothership = Mothership::new(
+            mothership_health,
+            if right_to_left { len } else { 0 }, id as i32 * LANE_HEIGHT + LANE_HEIGHT / 2
+        );
         Lane {
             ships: Vec::new(),
             len: len,

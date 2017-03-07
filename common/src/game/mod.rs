@@ -2,13 +2,16 @@ pub mod ship;
 mod lane;
 mod projectile;
 
+use std::cell::Cell;
+use std::rc::Rc;
 use self::projectile::Projectile;
-use self::ship::BaseShip;
+use self::ship::{BaseShip, MOTHERSHIP_MAX_HEALTH};
 use self::lane::*;
 #[cfg(feature = "graphics")]
 use graphics;
 
 pub struct Game {
+    mothership_health: [Rc<Cell<u32>>; 2],
     lanes: [Vec<Lane>; 2],
     projectiles: Vec<Projectile>,
 }
@@ -20,12 +23,13 @@ impl Game {
     pub fn new(size: usize, length: i32) -> Self {
         assert!(size > 0);
         let mut g = Game {
+            mothership_health: [Rc::new(Cell::new(MOTHERSHIP_MAX_HEALTH)), Rc::new(Cell::new(MOTHERSHIP_MAX_HEALTH))],
             lanes: [Vec::with_capacity(size), Vec::with_capacity(size)],
             projectiles: Vec::new(),
         };
         for i in 0..size {
-            g.lanes[0].push(Lane::new(length, i, false));
-            g.lanes[1].push(Lane::new(length, i, true));
+            g.lanes[0].push(Lane::new(g.mothership_health[0].clone(), length, i, false));
+            g.lanes[1].push(Lane::new(g.mothership_health[1].clone(), length, i, true));
         };
         g
     }
@@ -76,5 +80,14 @@ impl Game {
     }
     pub fn lane_count(&self) -> usize {
         self.lanes[0].len()
+    }
+    pub fn winner(&self) -> Option<usize> {
+        if self.mothership_health[0].get() == 0 {
+            Some(1)
+        } else if self.mothership_health[1].get() == 0 {
+            Some(0)
+        } else {
+            None
+        }
     }
 }

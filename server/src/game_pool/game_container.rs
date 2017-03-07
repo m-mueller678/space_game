@@ -7,8 +7,14 @@ use common::protocol::*;
 use server::Stream;
 use super::GameStartArg;
 
+pub enum ReadReady {
+    Read1,
+    Read2,
+    None
+}
+
 pub struct GameContainer {
-    poll: Receiver<usize>,
+    poll: Receiver<ReadReady>,
     streams: [Stream; 2],
     game: Game,
     builders: [Vec<BaseShipBuilder>; 2],
@@ -19,7 +25,7 @@ pub struct GameContainer {
 }
 
 impl GameContainer {
-    pub fn new(players: GameStartArg, poll: Receiver<usize>) -> Self {
+    pub fn new(players: GameStartArg, poll: Receiver<ReadReady>) -> Self {
         GameContainer {
             poll: poll,
             streams: [(players.0).0, (players.1).0],
@@ -38,7 +44,9 @@ impl GameContainer {
         }
         loop {
             match self.poll.try_recv() {
-                Ok(poll_id) => if !self.read(poll_id) { return false },
+                Ok(ReadReady::Read1) => if !self.read(0) { return false },
+                Ok(ReadReady::Read2) => if !self.read(1) { return false },
+                Ok(ReadReady::None) => {},
                 Err(TryRecvError::Empty) => return true,
                 Err(TryRecvError::Disconnected) => return false,
             }
@@ -72,16 +80,25 @@ impl GameContainer {
             self.game.tick();
             self.tick += 1;
         }
-        if self.tick - self.last_send >= 16 {
-            let msg = ServerGame::Update(ServerGameUpdate {
-                tick: self.tick,
-                events: mem::replace(&mut self.events, Vec::new())
-            });
-            self.last_send = self.tick;
-            self.send_or_disconnect(0, &msg) & &self.send_or_disconnect(1, &msg)
+        if self.game.winner().is_some() {
+            self.flush_events()
+                && self.send_or_disconnect(0, &ServerGame::End)
+                && self.send_or_disconnect(1, &ServerGame::End);
+            false
+        } else if self.tick - self.last_send >= 16 {
+            self.flush_events()
         } else {
             true
         }
+    }
+
+    fn flush_events(&mut self) -> bool {
+        let msg = ServerGame::Update(ServerGameUpdate {
+            tick: self.tick,
+            events: mem::replace(&mut self.events, Vec::new())
+        });
+        self.last_send = self.tick;
+        self.send_or_disconnect(0, &msg) && self.send_or_disconnect(1, &msg)
     }
 
     fn send_or_disconnect(&mut self, player: usize, msg: &ServerGame) -> bool {

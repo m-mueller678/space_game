@@ -40,6 +40,7 @@ pub struct ServerGameUpdate {
 pub enum ServerGame {
     Update(ServerGameUpdate),
     OtherDisconnect,
+    End
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -48,5 +49,5 @@ pub enum ServerEvent {
         player: usize,
         lane: usize,
         id: usize,
-    }
+    },
 }
