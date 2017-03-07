@@ -13,32 +13,13 @@ mod inner {
     use sfml::graphics as sfml;
     use self::static_texture::get as get_texture;
 
-    pub type IfGraphics<T> = T;
-
     pub trait RenderTarget: sfml::RenderTarget {}
 
     impl<T: sfml::RenderTarget> RenderTarget for T {}
 }
 
-#[cfg(not(feature = "graphics"))]
-mod inner {
-    use std::marker::PhantomData;
-
-    pub type Sprite = ();
-    pub type CompositeTexture = ();
-
-    #[derive(Default, Clone, Copy, Debug)]
-    pub struct IfGraphics<T> {
-        phantom: PhantomData<*const T>,
-    }
-
-    unsafe impl<T> Sync for IfGraphics<T> {}
-
-    unsafe impl<T> Send for IfGraphics<T> {}
-
-    pub trait RenderTarget {}
-
-    impl RenderTarget for () {}
-}
-
+#[cfg(feature = "graphics")]
 pub use self::inner::*;
+
+#[cfg(not(feature = "graphics"))]
+pub type Sprite = ();

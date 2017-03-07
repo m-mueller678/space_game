@@ -4,7 +4,6 @@ use super::*;
 use super::weapon::*;
 use std::rc::{Weak, Rc};
 use std::cell::RefCell;
-use graphics;
 
 fn mul_frac(m1: u32, m2: u32) -> u32 {
     use std::u32::MAX;
@@ -23,8 +22,8 @@ pub struct BaseShip {
     health: u32,
     max_health: u32,
     weapons: Vec<Weapon>,
-    draw_move: graphics::IfGraphics<bool>,
-    texture: graphics::IfGraphics<Rc<graphics::CompositeTexture>>,
+    #[cfg(feature = "graphics")]
+    texture: Rc<graphics::CompositeTexture>,
 }
 
 impl BaseShip {
@@ -51,9 +50,6 @@ impl BaseShip {
             self.speed /= 2;
         }
         self.pos += self.speed;
-        #[cfg(feature = "graphics")]{
-            self.draw_move = m;
-        }
     }
     pub fn set_pos_x(&mut self, pos: i32) {
         self.pos = pos;

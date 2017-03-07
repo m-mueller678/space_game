@@ -21,7 +21,7 @@ pub struct TickArgs<F: FnMut(Projectile)> {
 enum WeaponClass {
     Laser {
         #[cfg(feature = "graphics")]
-        color: graphics::IfGraphics<[u8; 3]>,
+        color: [u8; 3],
         power: u32,
     },
     Launcher {
