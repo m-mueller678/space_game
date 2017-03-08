@@ -1,6 +1,4 @@
 extern crate common;
-#[cfg(feature = "graphics")]
-extern crate sfml;
 
 use common::*;
 
@@ -15,7 +13,7 @@ const BUILDER_JSON: &'static str = r###"{
         ],
         "texture":{
             "parts":[
-                {"texture":"null","pos":[-40,-10,40,10]}
+                {"texture":0,"rect":[[-40,-10],[40,10]]}
             ]
         }
     }"###;
@@ -28,22 +26,5 @@ fn create_push_tick() {
     g.push_ship(builder.build(), 1, 0);
     for _ in 0..10000 {
         g.tick();
-    }
-}
-
-#[cfg(feature = "graphics")]
-#[test]
-fn draw() {
-    use sfml::graphics::*;
-    let builder: game::ship::BaseShipBuilder = serde_json::from_str(BUILDER_JSON).unwrap();
-    let mut g = game::Game::new(6, 50);
-    g.push_ship(builder.build(), 0, 0);
-    g.push_ship(builder.build(), 1, 0);
-    let mut rt = RenderTexture::new(500, 500, false).unwrap();
-    for _ in 0..10000 {
-        rt.clear(&Color::new_rgb(0, 0, 0));
-        g.draw(&mut rt);
-        g.tick();
-        rt.display();
     }
 }

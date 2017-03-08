@@ -1,6 +1,7 @@
 use super::*;
 use std::rc::Rc;
 use std::cell::RefCell;
+use graphics;
 
 #[cfg(feature = "graphics")]
 pub struct DrawArgs<'a, 'b> {
@@ -75,21 +76,17 @@ impl Weapon {
 
     #[cfg(feature = "graphics")]
     pub fn draw<T: graphics::RenderTarget>(&self, rt: &mut T, draw: &DrawArgs) {
-        use sfml::graphics::*;
-        use sfml::system::Vector2f;
         match self.class {
             WeaponClass::Laser { ref color, .. } => {
                 if (draw.target.pos_x() - draw.parent.pos_x()).abs() <= self.range {
-                    let x1 = (draw.parent.pos_x() + self.offset.0) as f32;
-                    let y1 = (draw.parent.pos_y() + self.offset.1) as f32;
-                    let x2 = draw.target.pos_x() as f32;
-                    let y2 = draw.target.pos_y() as f32;
-                    let color = Color::new_rgb(color[0], color[1], color[2]);
-                    let ver = [
-                        Vertex::new_with_pos_color(&Vector2f::new(x1, y1), &color),
-                        Vertex::new_with_pos_color(&Vector2f::new(x2, y2), &color),
-                    ];
-                    rt.draw_primitives(&ver, PrimitiveType::sfLines, &mut RenderStates::default());
+                    rt.draw_line(
+                        (self.offset.0 as f32, self.offset.1 as f32),
+                        (
+                            (draw.target.pos_x() - draw.parent.pos_x()) as f32,
+                            (draw.target.pos_y() - draw.parent.pos_y()) as f32
+                        ),
+                        [color[0], color[1], color[2], 255]
+                    );
                 }
             },
             WeaponClass::Launcher { .. } => {}

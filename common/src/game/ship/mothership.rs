@@ -2,6 +2,8 @@ use super::*;
 
 use std::cell::Cell;
 use std::rc::Rc;
+#[cfg(feature = "graphics")]
+use graphics;
 
 pub const MOTHERSHIP_MAX_HEALTH: u32 = 1_000_000;
 
