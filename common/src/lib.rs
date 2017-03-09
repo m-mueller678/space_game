@@ -6,8 +6,9 @@ pub extern crate serde_json;
 extern crate log;
 
 pub mod game;
+
 #[cfg(feature = "graphics")]
-mod graphics;
+pub mod graphics;
 
 #[cfg(not(feature = "graphics"))]
 mod graphics {
