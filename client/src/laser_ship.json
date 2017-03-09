@@ -27,12 +27,18 @@
   "texture": {
     "parts": [
       {
-        "texture": "arrow.png",
-        "pos": [
-          -160,
-          -80,
-          0,
-          80
+        "texture": {
+          "name": "arrow.png"
+        },
+        "rect": [
+          [
+            -160,
+            -80
+          ],
+          [
+            0,
+            80
+          ]
         ]
       }
     ]

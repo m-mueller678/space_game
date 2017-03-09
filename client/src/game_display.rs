@@ -1,13 +1,14 @@
-use super::game_manager::GameManager;
-use super::key_manager::{Action, KeyManager};
+use game_manager::GameManager;
+use key_manager::{Action, KeyManager};
 use common::game::Game;
-use sfml::graphics::*;
+use sfml::graphics::{RenderTarget, Color};
 use sfml::window::event::Event;
 use sfml::window::Key;
-use sfml::system::Vector2f;
 use std::cmp::{min, max};
 use sfml::system::Clock;
+use render::SfRender;
 use common::serde_json;
+use common::graphics::TransformRender;
 use common::serde::de::Error as ErrorTrait;
 
 type V2 = [f32; 2];
@@ -23,7 +24,7 @@ pub enum RunResult {
 
 struct GameView<'a, 'b, 'c> {
     scroll: f32,
-    view: View,
+    draw_width: f32,
     selected: usize,
     game: &'a mut Game,
     player: usize,
@@ -31,7 +32,7 @@ struct GameView<'a, 'b, 'c> {
     manager: &'c mut GameManager,
 }
 
-pub fn run(win: &mut RenderWindow,
+pub fn run(win: &mut SfRender,
            game: &mut Game,
            game_manager: &mut GameManager,
            player: usize,
@@ -40,7 +41,7 @@ pub fn run(win: &mut RenderWindow,
     let mut clock = Clock::new();
     let mut game = GameView {
         scroll: 0.,
-        view: win.get_view(),
+        draw_width: 0.,
         selected: 0,
         game: game,
         player: player,
@@ -53,7 +54,7 @@ pub fn run(win: &mut RenderWindow,
             match handle_event(&mut game, evt) {
                 EventResult::None => {},
                 EventResult::Closed => {
-                    win.close();
+                    win.win.close();
                     return RunResult::Quit;
                 },
                 EventResult::IoError(e) => return RunResult::IoError(e)
@@ -67,7 +68,7 @@ pub fn run(win: &mut RenderWindow,
         let scroll_left = in_win_y && m_x_pos < 0.05 && m_x_pos > 0.;
         if scroll_right ^ scroll_left {
             let direction = if scroll_right { 1. } else { -1. };
-            scroll(&mut game, direction * dt * 5000.);
+            scroll(&mut game, direction * dt * 5000., );
         }
         match game.manager.do_ticks(game.game) {
             Err(e) => return RunResult::IoError(e),
@@ -140,54 +141,33 @@ fn handle_event(game: &mut GameView, evt: Event) -> EventResult {
 }
 
 fn scroll(game: &mut GameView, dist: f32) {
-    game.scroll = (game.scroll + dist).max(0.).min(game.game.size_x() as f32 - game.view.get_size().x.abs());
-    set_view_pos(game);
+    game.scroll += dist;
+    bound_scroll(game);
 }
 
-fn set_view_pos(game: &mut GameView) {
-    let view_size = game.view.get_size();
-    if game.player == 0 {
-        game.view.set_center2f(
-            game.scroll + view_size.x.abs() / 2.,
-            view_size.y / 2.);
-    } else {
-        game.view.set_center2f(
-            game.game.size_x() as f32 - game.scroll - view_size.x.abs() / 2.,
-            view_size.y / 2.);
+fn bound_scroll(game: &mut GameView) {
+    if game.scroll < 0. {
+        game.scroll = 0.
+    } else if game.scroll > game.game.size_x() as f32 - game.draw_width {
+        game.scroll = game.game.size_x() as f32 - game.draw_width;
     }
 }
 
 fn resize(win: V2, game: &mut GameView) {
-    let draw_h = game.game.size_y() as f32;
-    let draw_w = draw_h * win[0] / win[1];
-    game.scroll = game.scroll.max(0.).min(game.game.size_x() as f32 - draw_w);
-    game.view.set_size2f(if game.player == 0 { draw_w } else { -draw_w }, draw_h);
-    set_view_pos(game);
+    game.draw_width = (game.game.size_x() as f32).min(game.game.size_y() as f32 * win[0] / win[1]);
+    bound_scroll(game);
 }
 
-fn draw(win: &mut RenderWindow, game: &GameView) {
-    win.set_view(&game.view);
+fn draw(win: &mut SfRender, game: &GameView) {
+    let draw_height = game.draw_width * win.get_size().y as f32 / win.get_size().x as f32;
+    let game_len = game.game.size_x() as f32;
     win.clear(&Color::black());
     {
-        let lane_len = game.game.size_x() as f32 / 4.;
-        let y_range = game.game.lane_y_range(game.selected);
-        let lane_height = y_range.1 as f32 - y_range.0 as f32;
-        let y_start = y_range.0 as f32 + lane_height * 0.2;
-        let y_end = y_range.1 as f32 - lane_height * 0.2;
-        let (x_start, x_end) = if game.player == 0 {
-            (0., lane_len)
-        } else {
-            (game.game.size_x() as f32, game.game.size_x() as f32 - lane_len)
-        };
-        let col1 = Color::new_rgba(0, 255, 255, 64);
-        let col2 = Color::new_rgba(0, 255, 255, 0);
-        let lane_ver = [
-            Vertex::new_with_pos_color(&Vector2f::new(x_start, y_start), &col1),
-            Vertex::new_with_pos_color(&Vector2f::new(x_end, y_start), &col2),
-            Vertex::new_with_pos_color(&Vector2f::new(x_end, y_end), &col2),
-            Vertex::new_with_pos_color(&Vector2f::new(x_start, y_end), &col1),
-        ];
-        win.draw_primitives(&lane_ver, PrimitiveType::sfQuads, &mut RenderStates::default());
+        let x_translate = if game.player == 0 { game.scroll } else { game_len - game.scroll };
+        let x_scale = win.get_view().get_size().x / if game.player == 0 { game.draw_width } else { -game.draw_width };
+        let y_scale = win.get_view().get_size().y / draw_height;
+        let mut render = TransformRender::new(win, move |(x, y)| ((x - x_translate) * x_scale, y * y_scale));
+        game.game.draw(&mut render);
     }
-    game.game.draw(win);
+    win.display();
 }

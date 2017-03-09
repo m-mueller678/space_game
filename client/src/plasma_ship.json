@@ -19,12 +19,18 @@
           },
           "speed": 100,
           "sprite": {
-            "texture": "null",
-            "pos": [
-              -30,
-              -30,
-              30,
-              30
+            "texture": {
+              "name": "null"
+            },
+            "rect": [
+              [
+                -30,
+                -30
+              ],
+              [
+                30,
+                30
+              ]
             ]
           },
           "cooldown": 60,
@@ -36,12 +42,18 @@
   "texture": {
     "parts": [
       {
-        "texture": "arrow.png",
-        "pos": [
-          -200,
-          -50,
-          0,
-          50
+        "texture": {
+          "name": "arrow.png"
+        },
+        "rect": [
+          [
+            -200,
+            -50
+          ],
+          [
+            0,
+            50
+          ]
         ]
       }
     ]
