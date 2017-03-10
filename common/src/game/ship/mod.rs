@@ -4,6 +4,7 @@ mod mothership;
 
 use super::projectile::Projectile;
 use super::Lane;
+#[cfg(feature = "graphics")]
 use graphics;
 
 pub use self::base_ship::BaseShip;

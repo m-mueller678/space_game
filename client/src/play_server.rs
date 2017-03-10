@@ -1,6 +1,7 @@
-use sfml::graphics::{RenderWindow};
+use sfml::graphics::RenderWindow;
 use sfml::window::event::Event;
 use sfml::window::Key;
+use render::SfRender;
 use common::game::ship::BaseShipBuilder;
 use common::protocol::*;
 use common::game::Game;
@@ -46,7 +47,7 @@ macro_rules! message_error {
     }
 }
 
-pub fn server_create(window: &mut RenderWindow,
+pub fn server_create(window: &mut SfRender,
                      addr: &SocketAddr,
                      own_builders: Vec<BaseShipBuilder>,
                      keys: &mut KeyManager)
@@ -84,7 +85,7 @@ pub fn server_create(window: &mut RenderWindow,
     run(window, stream, own_builders, keys, player_num)
 }
 
-pub fn server_join(window: &mut RenderWindow,
+pub fn server_join(window: &mut SfRender,
                    addr: &SocketAddr,
                    own_builders: Vec<BaseShipBuilder>,
                    keys: &mut KeyManager,
@@ -128,7 +129,7 @@ fn create_stream(addr: &SocketAddr) -> Result<BufStream<TcpStream>, io::Error> {
     Ok(BufStream::new(raw_stream))
 }
 
-fn run(window: &mut RenderWindow,
+fn run(window: &mut SfRender,
        mut stream: BufStream<TcpStream>,
        own_builders: Vec<BaseShipBuilder>,
        keys: &mut KeyManager,

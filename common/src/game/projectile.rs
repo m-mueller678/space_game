@@ -72,9 +72,8 @@ impl Projectile {
     }
     #[cfg(feature = "graphics")]
     pub fn draw<T: graphics::RenderTarget>(&self, rt: &mut T) {
-        use sfml::graphics::RenderStates;
-        let mut rs = RenderStates::default();
-        rs.transform.translate(self.pos_x as f32, self.pos_y as f32);
-        self.sprite.draw(rt, &mut rs);
+        use graphics::TransformRender;
+        let (pos_x, pos_y) = (self.pos_x, self.pos_y);
+        self.sprite.draw(&mut TransformRender::new(rt, move |(x, y)| (pos_x as f32 + x, pos_y as f32 + y)));
     }
 }

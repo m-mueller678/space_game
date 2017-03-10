@@ -1,9 +1,11 @@
 pub mod builder;
 
-use super::*;
-use super::weapon::*;
 use std::rc::{Weak, Rc};
 use std::cell::RefCell;
+use game::ship::weapon::*;
+use game::ship::{Ship, ShipTrait, Damage};
+use game::{Lane, Projectile};
+use graphics;
 
 fn mul_frac(m1: u32, m2: u32) -> u32 {
     use std::u32::MAX;
@@ -22,8 +24,8 @@ pub struct BaseShip {
     health: u32,
     max_health: u32,
     weapons: Vec<Weapon>,
-    #[cfg(feature = "graphics")]
-    texture: Rc<graphics::CompositeTexture>,
+    #[cfg_attr(not(feature = "graphics"), allow(dead_code))]
+    sprite: graphics::CompositeTexture,
 }
 
 impl BaseShip {
@@ -103,22 +105,28 @@ impl ShipTrait for BaseShip {
     }
     #[cfg(feature = "graphics")]
     fn draw<T: graphics::RenderTarget>(&self, rt: &mut T, lane: &Lane) {
-        use sfml::graphics::*;
-
-        let mut rs = RenderStates::default();
-        rs.transform.translate(self.pos_x() as f32, self.pos_y() as f32);
-        if self.accel.signum() < 0 {
-            rs.transform.scale(-1., 1.);
-        }
-        self.texture.draw(rt, &mut rs);
+        use graphics::*;
+        let pos_x = self.pos_x() as f32;
+        let pos_y = self.pos_y() as f32;
         let cell_rc = Weak::upgrade(&self.target).unwrap_or(lane.mothership().clone());
         let cell_ref = cell_rc.borrow();
         let draw_args = DrawArgs {
             target: &*cell_ref,
             parent: self,
         };
-        for w in self.weapons.iter() {
-            w.draw(rt, &draw_args);
-        }
+        if self.accel.signum() > 0 {
+            let mut render = TransformRender::new(rt, move |(x, y)| (pos_x + x, pos_y + y));
+            self.sprite.draw(&mut render);
+            for w in self.weapons.iter() {
+                w.draw(&mut render, &draw_args);
+            }
+        } else {
+            let mut render = TransformRender::new(rt, move |(x, y)| (pos_x - x, pos_y + y));
+            self.sprite.draw(&mut render);
+            for w in self.weapons.iter() {
+                w.draw(&mut render, &draw_args);
+            }
+        };
+
     }
 }
