@@ -1,9 +1,10 @@
 mod game_container;
 
 use std::sync::Arc;
-use std::sync::mpsc::{Sender, Receiver, channel, TryRecvError};
+use std::sync::mpsc::{Sender, Receiver, channel, RecvTimeoutError};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
+use time::{SteadyTime, Duration};
 use mio::tcp::TcpStream;
 use common::protocol::*;
 use common::game::ship::BaseShipBuilder;
@@ -39,14 +40,15 @@ impl GameThread {
 fn run_games(rec: Receiver<(GameStartArg, Receiver<ReadReady>)>, game_count: Arc<AtomicUsize>) {
     let mut games = Vec::new();
     loop {
-        loop {
-            match rec.try_recv() {
+        let rec_end_time = SteadyTime::now() + Duration::milliseconds(10);
+        while let Ok(timeout) = (rec_end_time - SteadyTime::now()).to_std() {
+            match rec.recv_timeout(timeout) {
                 Ok((start_arg, poll_rec)) => {
                     games.push(GameContainer::new(start_arg, poll_rec));
                     game_count.fetch_add(1, Ordering::Relaxed);
                 },
-                Err(TryRecvError::Empty) => break,
-                Err(TryRecvError::Disconnected) => return,
+                Err(RecvTimeoutError::Timeout) => break,
+                Err(RecvTimeoutError::Disconnected) => return,
             }
         }
         let mut i = 0;
