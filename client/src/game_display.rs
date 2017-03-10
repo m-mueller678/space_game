@@ -1,6 +1,7 @@
 use game_manager::GameManager;
 use key_manager::{Action, KeyManager};
 use common::game::Game;
+use common::graphics::RenderTarget as CommonRenderTrait;
 use sfml::graphics::{RenderTarget, Color};
 use sfml::window::event::Event;
 use sfml::window::Key;
@@ -154,18 +155,30 @@ fn bound_scroll(game: &mut GameView) {
 }
 
 fn resize(win: V2, game: &mut GameView) {
-    game.draw_width = (game.game.size_x() as f32).min(game.game.size_y() as f32 * win[0] / win[1]);
+    game.draw_width = game.game.size_y() as f32 * win[0] / win[1];
     bound_scroll(game);
 }
 
 fn draw(win: &mut SfRender, game: &GameView) {
-    let draw_height = game.draw_width * win.get_size().y as f32 / win.get_size().x as f32;
+    let draw_height = game.game.size_y() as f32;
     let game_len = game.game.size_x() as f32;
+    let y_scale = win.get_view().get_size().y / draw_height;
     win.clear(&Color::black());
     {
-        let x_translate = if game.player == 0 { game.scroll } else { game_len - game.scroll };
+        let x_scale = win.get_view().get_size().x / game.draw_width;
+        let mut render = TransformRender::new(win, move |(x, y)| (x * x_scale, y * y_scale));
+        let (min_y, max_y) = game.game.lane_y_range(game.selected);
+        let (min_y, max_y) = (min_y as f32, max_y as f32);
+        let lane_height = max_y - min_y;
+        render.draw_triangle(&[
+            (0.1 * lane_height, min_y + lane_height * 0.25),
+            (0.1 * lane_height, min_y + lane_height * 0.75),
+            (0.3 * lane_height, min_y + 0.5 * lane_height)
+        ], [0, 255, 255, 255]);
+    }
+    {
         let x_scale = win.get_view().get_size().x / if game.player == 0 { game.draw_width } else { -game.draw_width };
-        let y_scale = win.get_view().get_size().y / draw_height;
+        let x_translate = if game.player == 0 { game.scroll } else { game_len - game.scroll };
         let mut render = TransformRender::new(win, move |(x, y)| ((x - x_translate) * x_scale, y * y_scale));
         game.game.draw(&mut render);
     }
